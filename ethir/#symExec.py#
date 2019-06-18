@@ -3142,10 +3142,9 @@ def run(disasm_file=None, source_file=None, source_map=None, cfg=None, saco = No
         public_fields = get_public_fields(source_file)
 
     analyze(evm_version)
-
+    
     end = dtimer()
     print("Build CFG: "+str(end-begin)+"s")
-
     
     check_cfg_option(cfg,cname,execution)
 
@@ -3169,8 +3168,7 @@ def run(disasm_file=None, source_file=None, source_map=None, cfg=None, saco = No
         try:
             compute_cloning(blocks_to_clone,vertices,stack_h,component_of_blocks)
         except:
-            traceback.print_exc()
-            raise Exception("Error in clonning process",3)
+           raise Exception("Error in clonning process",3)
         
     # for e in vertices.values():
     #     e.display()
@@ -3208,7 +3206,7 @@ def run(disasm_file=None, source_file=None, source_map=None, cfg=None, saco = No
             # scc["multiple"] = scc_multiple
             
         except:
-            traceback.print_exc()
+            #traceback.print_exc()
             raise Exception("Error in SCC generation",7)
 
     if function_block_map != {}:
