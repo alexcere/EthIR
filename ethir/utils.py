@@ -463,3 +463,10 @@ def get_public_fields(source_file,arr = True):
         fields = map(lambda x: x.split()[-1].strip().strip(";"),good_lines)
     f.close()
     return fields
+
+def get_push_value(elem):
+    try:
+        push_val, _ = elem
+        return push_val
+    except:
+        return elem

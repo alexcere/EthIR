@@ -30,8 +30,7 @@ class BasicBlock:
         self.clone = False
         self.string_getter = False
         self.cost = 0
-        self.unknown_mstore = False
-        self.transitive_mstore = False
+        #self.transitive_mstore = False
         self.access_array = False
         self.assertfail_in_getter = False
         self.div_invalid_pattern = False
@@ -295,8 +294,8 @@ class BasicBlock:
                 mload +=1
             elif instr[:6] == "MSTORE": #MSTORE8
                 val = self._get_concrete_value("mstore",mstore)
-                if val == "?":
-                    self.unknown_mstore = True
+                # if val == "?":
+                #     self.unknown_mstore = True
                 new_instr = instr + " " + val
                 mstore+=1
             elif instr == "SLOAD":
@@ -315,20 +314,20 @@ class BasicBlock:
         
         self.instructions = new_instructions
 
-    def is_mstore_unknown(self):
-        return self.unknown_mstore
+    # def is_mstore_unknown(self):
+    #     return self.unknown_mstore
 
-    def set_unknown_mstore(self,val):
-        self.unknown_mstore = val
+    # def set_unknown_mstore(self,val):
+    #     self.unknown_mstore = val
         
-    def act_trans_mstore(self):
-        self.transitive_mstore = True
+    # def act_trans_mstore(self):
+    #     self.transitive_mstore = True
 
-    def get_trans_mstore(self):
-        return self.transitive_mstore
+    # def get_trans_mstore(self):
+    #     return self.transitive_mstore
 
-    def set_trans_mstore(self,val):
-        self.transitive_mstore = val
+    # def set_trans_mstore(self,val):
+    #     self.transitive_mstore = val
         
     def get_stack_info(self):
         return self.stack_info
@@ -376,14 +375,21 @@ class BasicBlock:
         self.div_invalid_pattern = True
     
     def add_stack(self,s):
-        s_aux = filter(lambda x: isinstance(x,int),s)
-        if not(s_aux in self.stacks_old):
+        s_aux = filter(lambda x: isinstance(x,tuple),s)
+        is_in = self._is_in_old_stacks(s_aux)
+        if not(is_in):
             self.stacks_old.append(s_aux)
 
     def known_stack(self,s):
-        s_aux = filter(lambda x: isinstance(x,int),s)
-        return (s_aux in self.stacks_old)
+        s_aux = filter(lambda x: isinstance(x,tuple),s)
+        is_in = self._is_in_old_stacks(s_aux)
+        return is_in
 
+    def _is_in_old_stacks(self,stack):
+        jump_addresses = map(lambda x: x[0],stack)
+        old_stacks_addresses = map(lambda x: map(lambda y:y[0],x),self.stacks_old)
+        return jump_addresses in old_stacks_addresses
+    
     def get_stacks(self):
         return self.stacks_old
 
@@ -419,8 +425,8 @@ class BasicBlock:
         new_obj.set_stack_info(list(self.stack_info))
         new_obj.set_cloning(self.clone)
         new_obj.set_string_getter(self.string_getter)
-        new_obj.set_unknown_mstore(self.unknown_mstore)
-        new_obj.set_trans_mstore(self.transitive_mstore)
+        # new_obj.set_unknown_mstore(self.unknown_mstore)
+        # new_obj.set_trans_mstore(self.transitive_mstore)
         new_obj.set_access_array(self.access_array)
         new_obj.set_div_invalid_pattern(self.div_invalid_pattern)
         new_obj.set_assertfail_in_getter(self.assertfail_in_getter)
