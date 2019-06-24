@@ -403,6 +403,9 @@ class BasicBlock:
         if p not in self.path:
             end = map(lambda x: x[1],p)
             self.path.append(end)
+
+    def set_paths(self,p):
+        self.path = p
         
     def copy(self):
         
@@ -427,6 +430,7 @@ class BasicBlock:
         new_obj.set_string_getter(self.string_getter)
         # new_obj.set_unknown_mstore(self.unknown_mstore)
         # new_obj.set_trans_mstore(self.transitive_mstore)
+        new_obj.set_paths([])
         new_obj.set_access_array(self.access_array)
         new_obj.set_div_invalid_pattern(self.div_invalid_pattern)
         new_obj.set_assertfail_in_getter(self.assertfail_in_getter)
