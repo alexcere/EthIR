@@ -127,6 +127,10 @@ class BasicBlock:
                 i = self.list_jumps.index(address)
                 self.list_jumps[i]=val
 
+    def add_jump(self, val):
+        if val not in self.list_jumps:
+            self.list_jumps.append(val)
+
     def set_cloning(self, c):
         self.clone = c
 
@@ -417,6 +421,7 @@ class BasicBlock:
             new_obj.set_falls_to(self.falls_to)
             
         new_obj.set_list_jump(list(self.list_jumps))
+        #new_obj.set_list_jump([])
         new_obj._set_mload_values(self.mload_values.copy())
         new_obj._set_mstore_values(self.mstore_values.copy())
         new_obj._set_sload_values(self.sload_values.copy())
@@ -430,7 +435,7 @@ class BasicBlock:
         new_obj.set_string_getter(self.string_getter)
         # new_obj.set_unknown_mstore(self.unknown_mstore)
         # new_obj.set_trans_mstore(self.transitive_mstore)
-        new_obj.set_paths([])
+        new_obj.set_paths(self.path)
         new_obj.set_access_array(self.access_array)
         new_obj.set_div_invalid_pattern(self.div_invalid_pattern)
         new_obj.set_assertfail_in_getter(self.assertfail_in_getter)
