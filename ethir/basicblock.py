@@ -420,8 +420,8 @@ class BasicBlock:
         if self.falls_to != None:
             new_obj.set_falls_to(self.falls_to)
             
-        new_obj.set_list_jump(list(self.list_jumps))
-        #new_obj.set_list_jump([])
+        #new_obj.set_list_jump(list(self.list_jumps))
+        new_obj.set_list_jump([])
         new_obj._set_mload_values(self.mload_values.copy())
         new_obj._set_mstore_values(self.mstore_values.copy())
         new_obj._set_sload_values(self.sload_values.copy())
