@@ -127,6 +127,20 @@ class BasicBlock:
                 i = self.list_jumps.index(address)
                 self.list_jumps[i]=val
 
+    def update_comes_from(self,val):
+        num = val.split("_")
+        if len(num) == 2:
+            numI = int(num[0])
+            if numI in self.comes_from:
+                i = self.comes_from.index(numI)
+                self.comes_from[i]=val
+        elif len(num)>2:
+            numI = num[:-1]
+            address = "_".join(numI)
+            if address in self.comes_from:
+                i = self.comes_from.index(address)
+                self.comes_from[i]=val
+
     def add_jump(self, val):
         if val not in self.list_jumps:
             self.list_jumps.append(val)
@@ -420,8 +434,8 @@ class BasicBlock:
         if self.falls_to != None:
             new_obj.set_falls_to(self.falls_to)
             
-        #new_obj.set_list_jump(list(self.list_jumps))
-        new_obj.set_list_jump([])
+        new_obj.set_list_jump(list(self.list_jumps))
+        # new_obj.set_list_jump([])
         new_obj._set_mload_values(self.mload_values.copy())
         new_obj._set_mstore_values(self.mstore_values.copy())
         new_obj._set_sload_values(self.sload_values.copy())
