@@ -470,3 +470,16 @@ def get_push_value(elem):
         return push_val
     except:
         return elem
+
+def get_initial_block_address(elem):
+    numbers = str(elem).split("_")
+    return int(numbers[0])
+
+def get_next_block_address(elem, index_dict):
+    numbers = str(elem).split("_")
+    idx = str(index_dict[int(numbers[0])])
+    if len(numbers) == 1:
+        numbers.append(idx)
+    else:
+        numbers[1] = idx
+    return "_".join(numbers)
