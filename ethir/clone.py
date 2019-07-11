@@ -179,7 +179,7 @@ def clone(block, blocks_input, address_dict, globally_cloned, index_dict):
     # El borrado se lleva a cabo una vez hemos hecho todo el cloning.
 
 
-def  clone_block(block_address, push_block, end_address, blocks_input, idx_dict, stack_in, globally_cloned,locally_cloned,pred, path_to_clone, path_idx):
+def  clone_block(block_address, push_block, end_address, blocks_input, idx_dict, stack_in, globally_cloned,locally_cloned,pred, path_to_clone, path_idx,block_idx):
     global stack_index
     global cloned_block_counter
 
@@ -198,9 +198,19 @@ def  clone_block(block_address, push_block, end_address, blocks_input, idx_dict,
         block_dup.set_stack_info((stack_in,stack_out))
 
         old_start_address = block.get_start_address()
-        new_start_address = get_next_block_address(old_start_address, idx_dict)
-        idx_dict[get_initial_block_address(old_start_address)] += 1
+        print type(block_idx)
+        print block_idx
+        if type(block_idx) == int:
+            print "HOLAAAAAAAAAAAAAAAAA"
+            new_start_address = str(old_start_address)+"_"+str(block_idx)
         
+        else:
+            new_start_address = block_idx
+            idx_dict[get_initial_block_address(old_start_address)] += 1
+
+        print "NEW START ADDRESS HERE"
+        print new_start_address
+            
         block_dup.set_start_address(new_start_address)
         stack_index[block_dup.get_start_address()] = [stack_in,stack_out]
         
@@ -256,7 +266,7 @@ def update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, push_block
 
        # print block_dup.get_list_jumps()
        
-        clone_block(jumps_to, push_block, end_address,blocks_input,idx_dict,stack_out,globally_cloned,locally_cloned,pred_new, path_to_clone, path_idx)
+        clone_block(jumps_to, push_block, end_address,blocks_input,idx_dict,stack_out,globally_cloned,locally_cloned,pred_new, path_to_clone, path_idx,new_jump_address)
 
 def find_sucessor_block(idx_dict, next_address):
     prefix_address = get_initial_block_address(next_address)
@@ -270,18 +280,27 @@ def update_falls_to(block_dup, falls_to, idx_dict, locally_cloned, push_block, e
     print "*************"
     print block_dup.get_start_address()
     print falls_to
+    print "JUMPTARGET"
+    print block_dup.get_jump_target()
+    print blocks_input[get_base_block(block_dup)].get_jump_target()
 
+    print "********************"
     #main path
     if path_idx != -1:
         new_falls_to = get_next_block_address(falls_to, idx_dict)
+        print "MAIN PATH"
+        print new_falls_to
         block_dup.set_falls_to(new_falls_to)
-        clone_block(falls_to,push_block, end_address,blocks_input,idx_dict,stack_out,globally_cloned,locally_cloned,pred_new, path_to_clone, path_idx)
+        clone_block(falls_to,push_block, end_address,blocks_input,idx_dict,stack_out,globally_cloned,locally_cloned,pred_new, path_to_clone, path_idx,new_falls_to)
 
+    
     #out of main path
     else: #path_idx == -1
         if falls_to in path_to_clone: #it means that we have reach the main path, and we finish this clonning
             idx = get_idx(block_dup)
             new_falls_to = str(falls_to)+"_"+str(idx)
+            print "MAIN PATH REACHED"
+            print new_falls_to
             update_idx_dict(idx,falls_to,idx_dict)
             block_dup.set_falls_to(new_falls_to)
             blocks_input[new_falls_to].add_origin(pred_new)
@@ -290,16 +309,21 @@ def update_falls_to(block_dup, falls_to, idx_dict, locally_cloned, push_block, e
             if falls_to in locally_cloned: #bucle, actualizo
                 idx = get_idx(block_dup)
                 new_falls_to = str(falls_to)+"_"+str(idx)
+                print "LOOP"
+                print new_falls_to
                 update_idx_dict(idx,falls_to,idx_dict)
                 block_dup.set_falls_to(new_falls_to)
                 blocks_input[new_falls_to].add_origin(pred_new)
             else:
+
                 #clono
                 idx = get_idx(block_dup)
                 new_falls_to = str(falls_to)+"_"+str(idx)
+                print "CONTINUE OUT"
+                print new_falls_to
                 update_idx_dict(idx,falls_to,idx_dict)
                 block_dup.set_falls_to(new_falls_to)
-                clone_block(falls_to,push_block, end_address,blocks_input,idx_dict,stack_out,globally_cloned,locally_cloned,pred_new, path_to_clone, path_idx)
+                clone_block(falls_to,push_block, end_address,blocks_input,idx_dict,stack_out,globally_cloned,locally_cloned,pred_new, path_to_clone, path_idx,idx)
 
 
     print "++++++++++++++++++++++++"
@@ -489,4 +513,4 @@ def get_idx(block):
     address = block.get_start_address()
     parts = address.split("_")
     idx = parts[1]
-    return idx
+    return int(idx)
