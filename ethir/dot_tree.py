@@ -101,6 +101,9 @@ def build_tree(block,visited,block_input,condTrue = "t"):
         if type_block == "falls_to":
             ch = build_tree(block_input.get(falls_to),visited,block_input,"")
         else:
+            print("Falls to")
+            print start
+            print falls_to
             ch = build_tree(block_input.get(falls_to),visited,block_input,"f")
         if ch not in r.get_children():
             r.add_child(ch)
