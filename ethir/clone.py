@@ -13,6 +13,33 @@ def init():
     global adress_dict
     address_dict = {}
 
+    global first_push
+    first_push = {}
+
+    # Diccionario con clave, direccion del bloque que hace push
+    # y valor el indice que le vamos a asociar al ultimo bloque a clonar.
+    global last_block_idx_dict
+    last_block_idx_dict = {}
+
+'''
+Computes the inverse relation of address_dict, so that for each
+push address, we know which is the furthest address reachable from there.
+Multiple addresses can be reached when multiple pushes are done in the same block.
+'''
+def get_first_push(blocks_dict):
+    global first_push
+    global address_dict
+
+    
+    for final_address in address_dict:
+        push_addresses = address_dict[final_address]
+        for push_address in push_addresses:
+            path = get_main_path(blocks_dict[final_address].get_paths(), push_address)
+        
+            if (push_address not in first_push) or (first_push[push_address] in path):
+                first_push[push_address] = final_address
+
+
 #NOTE: Este va a hacer falta
 def get_stack_evol(block,inpt):
     i = inpt
@@ -38,6 +65,7 @@ address.
 def clone_path(blocks_dict, final_address, push_address, block_address, first_copy, globally_cloned, index_dict):
     global cloned_blocks
     global stack_index
+    global last_block_idx_dict
 
     stack_in = stack_index[push_address][1]
     #print "EMPIEZA"
@@ -45,7 +73,10 @@ def clone_path(blocks_dict, final_address, push_address, block_address, first_co
     #Empezamos a clonar desde los hijos del bloque que ha hecho el push
     #No se clona el bloque que ha hecho el push, asi que llamamos directamente
     #a clone_child.
-        
+
+    print("Push address")
+    print push_address
+    
     push_block_obj = blocks_dict[push_address]
 
     final_block_obj = blocks_dict[final_address]
@@ -69,7 +100,7 @@ def clone_path(blocks_dict, final_address, push_address, block_address, first_co
     initial_falls_to = push_block_obj.get_falls_to()
 
     #No vamos a separar el ultimo bloque del resto. Cuando lleguemos al final del todo,  
-    clone_child(push_block_obj,initial_jumps_to, initial_falls_to,index_dict,block_address,blocks_dict,stack_in,globally_cloned,locally_cloned, path_to_clone,1)
+    clone_child(push_block_obj,initial_jumps_to, initial_falls_to,index_dict,block_address,blocks_dict,stack_in,globally_cloned,locally_cloned, path_to_clone, 1)
 
     pred = path_to_clone[-3]
 
@@ -81,20 +112,24 @@ def clone_path(blocks_dict, final_address, push_address, block_address, first_co
         pred = str(pred) + "_" +  str(index_dict[pred] - 1)
 
     start_address = block_address
-        
+
+    
+    last_block_idx = last_block_idx_dict[path_to_clone[0]]
+    
     if first_copy:
         #Anyadimos el ultimo bloque a clonar, si no se ha hecho antes.
         if start_address not in globally_cloned:
             globally_cloned.append(start_address)
         #Clonamos el ultimo bloque teniendo en cuenta que la direccion de salto puede ser una copia.
         #Su predecesor es el ultimo bloque que hemos clonado.
-        clone_last_block(start_address, final_address, blocks_dict,index_dict,locally_cloned, pred, push_address)
+        clone_last_block(start_address, final_address, blocks_dict,index_dict,locally_cloned, pred, push_address, last_block_idx)
     else:
-        block[str(start_address) + '_' + str(index_dict[address_wth_idx] - 1)].add_origin(pred)
+        block[str(start_address) + '_' + str(last_block_idx)].add_origin(pred)
     
-def clone_subpath(blocks_dict, final_address, push_address, pred_address, first_copy, globally_cloned, index_dict):
+def clone_subpath(blocks_dict, final_address, push_address, pred_address, first_copy, globally_cloned, index_dict,last_address):
     global cloned_blocks
     global stack_index
+    global last_block_idx_dict
 
     stack_in = stack_index[push_address][1]
     #print "EMPIEZA"
@@ -114,31 +149,30 @@ def clone_subpath(blocks_dict, final_address, push_address, pred_address, first_
     #modify_jump_first_block(push_block_obj,b,i)
 
     #No vamos a separar el ultimo bloque del resto. Cuando lleguemos al final del todo,
-
-    block_address = path_to_clone[-2]
     
-    clone_block(push_address, block_address, blocks_dict, index_dict, stack_in, globally_cloned,locally_cloned,pred_address, path_to_clone, 1)
+    clone_block(push_address, final_address, blocks_dict, index_dict, stack_in, globally_cloned,locally_cloned,pred_address, path_to_clone, 1)
 
-    pred = path_to_clone[-3]
+    pred = path_to_clone[-2]
+
+    last_block_idx = last_block_idx_dict[path_to_clone[0]]
 
     # Si el camino tiene mas de 3 direcciones, entonces el predecesor
     # del bloque a clonar tambien ha sido clonado, y por tanto, hay que
     # anyadir el indice correspondiente.
     
-    if len(path_to_clone) > 3:
+    if len(path_to_clone) > 2:
         pred = str(pred) + "_" +  str(index_dict[pred] - 1)
-
-    start_address = block_address
         
     if first_copy:
         #Anyadimos el ultimo bloque a clonar, si no se ha hecho antes.
-        if start_address not in globally_cloned:
-            globally_cloned.append(start_address)
+        if final_address not in globally_cloned:
+            globally_cloned.append(final_address)
         #Clonamos el ultimo bloque teniendo en cuenta que la direccion de salto puede ser una copia.
         #Su predecesor es el ultimo bloque que hemos clonado.
-        clone_last_block(start_address, final_address, blocks_dict,index_dict,locally_cloned, pred, push_address)
+        
+        clone_last_block(final_address, last_address, blocks_dict,index_dict,locally_cloned, pred, push_address, last_block_idx)
     else:
-        block[str(start_address) + '_' + str(index_dict[address_wth_idx] - 1)].add_origin(pred)
+        block[str(start_address) + '_' + str(last_block_idx)].add_origin(pred)
 
 
 '''
@@ -157,6 +191,7 @@ def clone(block, blocks_input, globally_cloned, index_dict):
     global cloned_blocks
     global stack_index
     global address_dict
+    global first_push
     
     blocks_dict = blocks_input
     uncond_block = block.get_start_address()    
@@ -188,7 +223,7 @@ def clone(block, blocks_input, globally_cloned, index_dict):
         for push_address in push_addresses:
             #Si ya hemos clonado el nodo que ha hecho el push, entonces el camino que estamos
             #considerando es un subcamino de uno mas largo que ya hemos clonado.
-            if push_address not in globally_cloned:
+            if (push_address not in globally_cloned) and (a == first_push[push_address]):
                 clone_path(blocks_dict, a, push_address, block.get_start_address(), first_copy, globally_cloned, index_dict)
                 first_copy = False
         i = i+1
@@ -196,12 +231,12 @@ def clone(block, blocks_input, globally_cloned, index_dict):
     # El borrado se lleva a cabo una vez hemos hecho todo el cloning.
 
 
-def  clone_block(block_address, end_address, blocks_input, idx_dict, stack_in, globally_cloned,locally_cloned,pred, path_to_clone, path_idx):
+def clone_block(block_address, end_address, blocks_input, idx_dict, stack_in, globally_cloned,locally_cloned,pred, path_to_clone, path_idx):
     global stack_index
-
-    # La comprobacion se hace a la hora de hacer el update correspondiente de si
-    # ha sido clonado o no. Asi, permitimos que un mismo bloque se pueda clonar varias veces.
-    if block_address != end_address:
+    global last_block_idx
+    # Comprobamos si no es el bloque final, o en caso de serlo, que el camino
+    # se haya recorrido entero (puede repetirse este bucle final en el camino).
+    if block_address != end_address or path_idx < len(path_to_clone) - 2:
     #if block_address != end_address and block_address not in locally_cloned:
         
         block = blocks_input[block_address]
@@ -245,24 +280,25 @@ def  clone_block(block_address, end_address, blocks_input, idx_dict, stack_in, g
         if block_address not in globally_cloned:
             globally_cloned.append(block_address)
 
+    else:
+        
+        last_block_idx_dict[path_to_clone[0]] = idx_dict[get_initial_block_address(block_address)]
+        idx_dict[get_initial_block_address(block_address)] += 1
+
+        locally_cloned.append(block_address)
+        
+        if block_address not in globally_cloned:
+            globally_cloned.append(block_address)
+        
             
 def update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, path_idx):
 
     global address_dict
 
     possible_final_address = check_if_subpath(address_dict, jumps_to)
-    
-    if (path_idx == -1) and (possible_final_address != -1):
-        print("Camino no principal")
-        
-        new_jump_address = get_next_block_address(jumps_to, idx_dict)
-        block_dup.set_jump_target(new_jump_address,True)
-        block_dup.set_list_jump([new_jump_address])
-        
-        clone_subpath(blocks_input, possible_final_address, falls_to, pred_new, True, globally_cloned, idx_dict)
 
     # No clonamos si el bloque ya ha sido clonado y esta fuera del camino principal.
-    elif (jumps_to in locally_cloned) and (path_idx == -1):
+    if (jumps_to in locally_cloned) and (path_idx == -1):
 
         jump_address = find_sucessor_block(idx_dict, jumps_to)
         
@@ -270,6 +306,16 @@ def update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_addres
         block_dup.set_list_jump([jump_address])
 
         blocks_input[jump_address].add_origin(pred_new)
+
+    elif (path_idx == -1) and (possible_final_address != -1):
+        print("Camino no principal")
+        
+        new_jump_address = get_next_block_address(jumps_to, idx_dict)
+        block_dup.set_jump_target(new_jump_address,True)
+        block_dup.set_list_jump([new_jump_address])
+        
+        clone_subpath(blocks_input, end_address, jumps_to, pred_new, True, globally_cloned, idx_dict, path_to_clone[-1])
+
 
     else:
         new_jump_address = get_next_block_address(jumps_to, idx_dict)
@@ -303,17 +349,17 @@ def update_falls_to(block_dup, falls_to, idx_dict, locally_cloned, end_address, 
     global address_dict
 
     possible_final_address = check_if_subpath(address_dict, falls_to)
-    
-    if (path_idx == -1) and (possible_final_address != -1):
-        print("Clonando camino no principal")
-        new_falls_to = get_next_block_address(falls_to, idx_dict)
-        block_dup.set_falls_to(new_falls_to)
-        clone_subpath(blocks_input, possible_final_address, falls_to, pred_new, True, globally_cloned, idx_dict)
         
-    elif (path_idx == -1) and (falls_to in locally_cloned):
+    if (path_idx == -1) and (falls_to in locally_cloned):
         new_falls_to = find_sucessor_block(idx_dict, falls_to)
         block_dup.set_falls_to(new_falls_to)
         blocks_input[new_falls_to].add_origin(pred_new)
+
+    elif (path_idx == -1) and (possible_final_address != -1):
+        print("Clonando camino no principal")
+        new_falls_to = get_next_block_address(falls_to, idx_dict)
+        block_dup.set_falls_to(new_falls_to)
+        clone_subpath(blocks_input, end_address, falls_to, pred_new, True, globally_cloned, idx_dict, path_to_clone[-1])
         
     else:
         new_falls_to = get_next_block_address(falls_to, idx_dict)
@@ -338,8 +384,8 @@ def clone_child(block_dup,jumps_to,falls_to,idx_dict,end_address,blocks_input,st
                 update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, -1)
             else:
                 print path_to_clone[path_idx]
-                print jumps_to
                 print falls_to
+                print jumps_to
                 raise Exception("Not consistent path")
             
     #Como los caminos no se actualizan, solo utilizamos el path_to_clone si el bloque incondicional
@@ -371,6 +417,8 @@ def clone_child(block_dup,jumps_to,falls_to,idx_dict,end_address,blocks_input,st
                 update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, -1)
             else:
                 print("Salto incondicional fuera del camino principal con varios destinos")
+                print pred_new
+                update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, -1)
         
     elif t == "falls_to":
         if path_idx == -1:
@@ -380,7 +428,7 @@ def clone_child(block_dup,jumps_to,falls_to,idx_dict,end_address,blocks_input,st
 
 
             
-def clone_last_block(block_address, jump_address, blocks_input,idx_dict,locally_cloned, pred, push_address):
+def clone_last_block(block_address, jump_address, blocks_input,idx_dict,locally_cloned, pred, push_address, block_idx):
     global stack_index
     
     block = blocks_input[block_address]
@@ -399,9 +447,11 @@ def clone_last_block(block_address, jump_address, blocks_input,idx_dict,locally_
     # En este paso, se supone que block.get_start_address es necesariamente
     # un bloque inicial (probarlo)
     old_start_address = block.get_start_address()
-    new_start_address = str(old_start_address) + "_" + str(idx_dict[old_start_address])
-    idx_dict[old_start_address] += 1
-    
+    new_start_address = str(old_start_address) + "_" + str(block_idx)
+    # idx_dict[old_start_address] += 1
+
+    print("Nueva direccion inicial")
+    print new_start_address
     block_dup.set_start_address(new_start_address)
     stack_index[block_dup.get_start_address()] = [stack_in,stack_out]
             
@@ -411,12 +461,12 @@ def clone_last_block(block_address, jump_address, blocks_input,idx_dict,locally_
     block_dup.add_origin(pred)
 
     #Nos quedamos con los caminos que han pasado por el push.
-    paths_in = filter(lambda x: push_address  in x, block.get_paths())
-    block_dup.set_paths(paths_in)
+    #paths_in = filter(lambda x: push_address  in x, block.get_paths())
+    #block_dup.set_paths(paths_in)
 
     #Del nodo original, quitamos los caminos que hacen ese push.
-    paths_not_in = filter(lambda x: push_address not in x, block.get_paths())
-    block.set_paths(paths_not_in)
+    #paths_not_in = filter(lambda x: push_address not in x, block.get_paths())
+    #block.set_paths(paths_not_in)
     
     blocks_input[block_dup.get_start_address()]=block_dup
 
@@ -456,19 +506,20 @@ def compute_cloning(blocks_to_clone,blocks_input,stack_info, address_info):
     blockps2clone = sorted(blocks_to_clone, key = getLevel)
     globally_cloned = []
 
+    get_first_push(blocks_dict)
+
     index_dict = get_index_dict(blocks_input)
 
     for b in blocks_to_clone:
         clone(b, blocks_dict, globally_cloned, index_dict)
 
-    # delete_old_blocks(globally_cloned, blocks_input)
+    delete_old_blocks(globally_cloned, blocks_input)
 
-    print address_dict
     # print ("Copias")
     # print blocks_input['361_1'].get_list_jumps()
     # print blocks_input['361_1'].get_jump_target()
     # print blocks_input['361_1'].get_falls_to()
-    show_graph(blocks_input)
+    # show_graph(blocks_input)
 
 
 def get_index_dict(blocks_input):
