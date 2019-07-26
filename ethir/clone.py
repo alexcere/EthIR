@@ -333,10 +333,10 @@ def clone_child(block_dup,jumps_to,falls_to,idx_dict,end_address,blocks_input,st
             update_falls_to(block_dup, falls_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, -1)
 
         else:
-            if path_to_clone[path_idx] == jumps_to:
+            if path_to_clone[path_idx] == get_initial_block_address(jumps_to):
                 update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, path_idx+1)
                 update_falls_to(block_dup, falls_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, -1)
-            elif path_to_clone[path_idx] == falls_to:
+            elif path_to_clone[path_idx] == get_initial_block_address(falls_to):
                 update_falls_to(block_dup, falls_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, path_idx+1)
                 update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, -1)
             else:
@@ -471,7 +471,7 @@ def compute_cloning(blocks_to_clone,blocks_input,stack_info, address_info):
     for b in blocks_to_clone:
         clone(b, blocks_dict, globally_cloned, index_dict)
 
-    delete_old_blocks(globally_cloned, blocks_input)
+    #delete_old_blocks(globally_cloned, blocks_input)
 
     # print ("Copias")
     # print blocks_input['361_1'].get_list_jumps()
