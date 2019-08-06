@@ -89,8 +89,9 @@ def clone_path(blocks_dict, final_address, push_address, block_address, first_co
     # Preguntamos el camino en el bloque que queremos la direccion final.
     # Si lo preguntasemos en block, podriamos quedarnos con caminos mas largos de los que
     # nos interesan, pues puede ser un bucle y pasar varias veces por ese camino.
-    
-    path_to_clone = get_main_path(final_block_obj.get_paths(), push_address)
+
+    path_to_clone = find_path(blocks_dict, push_address, final_address)
+    # path_to_clone = get_main_path(final_block_obj.get_paths(), push_address)
     print("Clonando")
     # print push_address
     print path_to_clone
@@ -118,13 +119,20 @@ def clone_subpath(blocks_dict, final_address, push_address, pred_address, first_
 
     locally_cloned = []
 
+    print("Ultima direccion")
+    print final_address
+
+    print last_address
+
     # Preguntamos el camino en el bloque que queremos la direccion final.
     # Si lo preguntasemos en block, podriamos quedarnos con caminos mas largos de los que
     # nos interesan, pues puede ser un bucle y pasar varias veces por ese camino.
-    
-    path_to_clone = get_main_path(final_block_obj.get_paths(), push_address)
 
-    path_to_clone.append(last_address)
+
+    path_to_clone = find_path(blocks_dict, push_address, last_address)
+    # path_to_clone = get_main_path(final_block_obj.get_paths(), push_address)
+
+    # path_to_clone.append(last_address)
     print("Clonando camino secundario")
     # print push_address
     print path_to_clone
@@ -144,7 +152,7 @@ def get_main_path(paths, address):
     for path in paths:
         if address in path:
             return path[path.index(address):]#TODO: Find start point and return it
-    raise Exception('Path containing address not found')
+    return []
     
     
 def clone(block, blocks_input, globally_cloned, index_dict):
@@ -270,7 +278,6 @@ def update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_addres
         new_jump_address = get_next_block_address(jumps_to, idx_dict)
         block_dup.set_jump_target(new_jump_address,True)
         block_dup.set_list_jump([new_jump_address])
-        
         clone_subpath(blocks_input, end_address, jumps_to, pred_new, True, globally_cloned, idx_dict, path_to_clone[-1])
 
 
@@ -280,7 +287,6 @@ def update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_addres
         block_dup.set_list_jump([new_jump_address])
 
        # print block_dup.get_list_jumps()
-       
         clone_block(jumps_to, end_address,blocks_input,idx_dict,stack_out,globally_cloned,locally_cloned,pred_new, path_to_clone, path_idx)
 
 def find_sucessor_block(idx_dict, next_address):
@@ -333,10 +339,10 @@ def clone_child(block_dup,jumps_to,falls_to,idx_dict,end_address,blocks_input,st
             update_falls_to(block_dup, falls_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, -1)
 
         else:
-            if path_to_clone[path_idx] == get_initial_block_address(jumps_to):
+            if get_initial_block_address(path_to_clone[path_idx]) == get_initial_block_address(jumps_to):
                 update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, path_idx+1)
                 update_falls_to(block_dup, falls_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, -1)
-            elif path_to_clone[path_idx] == get_initial_block_address(falls_to):
+            elif get_initial_block_address(path_to_clone[path_idx]) == get_initial_block_address(falls_to):
                 update_falls_to(block_dup, falls_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, path_idx+1)
                 update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, -1)
             else:
@@ -406,7 +412,7 @@ def clone_last_block(block_address, jump_address, blocks_input,idx_dict,locally_
     # En este paso, se supone que block.get_start_address es necesariamente
     # un bloque inicial (probarlo)
     new_start_address = block_idx
-    idx_dict[block_address] += 1
+    idx_dict[get_initial_block_address(block_address)] += 1
 
     print("Nueva direccion inicial")
     print new_start_address
@@ -428,8 +434,12 @@ def clone_last_block(block_address, jump_address, blocks_input,idx_dict,locally_
     
     blocks_input[block_dup.get_start_address()]=block_dup
 
-    blocks_input[jump_address].update_comes_from(new_start_address)
-    
+    # blocks_input[jump_address].set_comes_from([new_start_address])
+
+    # Anyadimos el nuevo origen, no podemos borrar el anterior porque puede
+    # ocurrir que haya otros caminos que terminen este nodo, y necesiten
+    # algún camino por el nodo inicial.
+    blocks_input[jump_address].add_origin(new_start_address)
 
 def update_comes_from(pred_list,idx,address,cloned):
     comes_from = []
@@ -460,8 +470,7 @@ def compute_cloning(blocks_to_clone,blocks_input,stack_info, address_info):
     blocks_dict = blocks_input
     stack_index = stack_info
     address_dict = address_info
-    
-    blockps2clone = sorted(blocks_to_clone, key = getLevel)
+
     globally_cloned = []
 
     get_first_push(blocks_dict)
@@ -496,3 +505,27 @@ def show_graph(blocks_input):
         print blocks_input[address].get_comes_from()
         print("List jump: ")
         print blocks_input[address].get_list_jumps()
+
+
+def find_path(blocks_dict, push_address, final_address):
+    current_paths = [(final_address, [final_address])]
+    idx = 0
+    while True:
+        current_address, current_path = current_paths[idx]
+        current_block = blocks_dict[current_address]
+        paths = current_block.get_paths()
+        path_to_push = get_main_path(paths, push_address)
+        print("Buscando camino...")
+        print current_path
+        print current_address
+        print path_to_push
+        print push_address
+        print final_address
+        print idx
+        print current_block.get_comes_from()
+        if path_to_push != []:
+            return path_to_push[:-1] + current_path
+        else:
+            for item in current_block.get_comes_from():
+                current_paths.append((item, [item] + current_path))
+            idx = idx + 1

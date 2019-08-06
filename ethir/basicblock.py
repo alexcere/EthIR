@@ -127,19 +127,8 @@ class BasicBlock:
                 i = self.list_jumps.index(address)
                 self.list_jumps[i]=val
 
-    def update_comes_from(self,val):
-        num = val.split("_")
-        if len(num) == 2:
-            numI = int(num[0])
-            if numI in self.comes_from:
-                i = self.comes_from.index(numI)
-                self.comes_from[i]=val
-        elif len(num)>2:
-            numI = num[:-1]
-            address = "_".join(numI)
-            if address in self.comes_from:
-                i = self.comes_from.index(address)
-                self.comes_from[i]=val
+    def set_comes_from(self, new_comes_from):
+        self.comes_from = new_comes_from
 
     def add_jump(self, val):
         if val not in self.list_jumps:
