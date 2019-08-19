@@ -1,5 +1,5 @@
 import opcodes
-from utils import getLevel, get_initial_block_address, get_next_block_address
+from utils import getLevel, get_initial_block_address, get_next_block_address, check_if_not_cloned_address
 import os
 from dot_tree import Tree, build_tree
 
@@ -23,6 +23,9 @@ def init():
 
     global first_copy
     first_copy = True
+
+    global cloned_block_counter
+    cloned_block_counter = {}
 
 '''
 Computes the inverse relation of address_dict, so that for each
@@ -69,6 +72,7 @@ def clone_path(blocks_dict, final_address, push_address, block_address, first_co
     global cloned_blocks
     global stack_index
     global last_block_idx_dict
+    global cloned_block_counter
 
     stack_in = stack_index[push_address][1]
     #print "EMPIEZA"
@@ -205,7 +209,10 @@ def clone_block(block_address, end_address, blocks_input, idx_dict, stack_in, gl
     # se haya recorrido entero (puede repetirse este bucle final en el camino).
     if get_initial_block_address(block_address) != end_address or path_idx < len(path_to_clone) - 2:
     #if block_address != end_address and block_address not in locally_cloned:
-        
+
+
+        print("Nombre antiguo")
+        print block_address
         block = blocks_input[block_address]
         comes_from_old = block.get_comes_from()
         #TODO: quizas actualizar el comes from del bloque que no se va a borrar.
@@ -521,9 +528,33 @@ def find_path(blocks_dict, push_address, final_address):
         print final_address
         print idx
         print current_block.get_comes_from()
-        if path_to_push != []:
+        if path_to_push != [] and check_if_consistent_path(path_to_push[:-1] + current_path):
             return path_to_push[:-1] + current_path
         else:
             for item in current_block.get_comes_from():
-                current_paths.append((item, [item] + current_path))
+                if check_if_not_cloned_address(item) and check_if_consistent_address(current_path, item):
+                    current_paths.append((item, [item] + current_path))
             idx = idx + 1
+
+'''
+Returns false if current_address makes a push and that push is not in current path, otherwise true.
+'''
+def check_if_consistent_address(current_path, current_address):
+    global first_push
+
+    if current_address in first_push:
+        print("Posible candidato")
+        print current_address
+        print first_push[current_address]
+        print current_path
+
+    return not((current_address in first_push) and (first_push[current_address] not in current_path))
+
+
+def check_if_consistent_path(path):
+    print("Comprobando camino")
+    for i in range(len(path) - 1):
+        if not(check_if_consistent_address(path[i:], path[i])):
+            return False
+    return True
+

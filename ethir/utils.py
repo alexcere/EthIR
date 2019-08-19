@@ -483,3 +483,7 @@ def get_next_block_address(elem, index_dict):
     else:
         numbers[1] = idx
     return "_".join(numbers)
+
+def check_if_not_cloned_address(elem):
+    numbers = str(elem).split("_")
+    return len(numbers) == 1
