@@ -99,6 +99,21 @@ def clone_path(blocks_dict, final_address, push_address, block_address, first_co
     # nos interesan, pues puede ser un bucle y pasar varias veces por ese camino.
 
     path_to_clone = find_path(blocks_dict, push_address, final_address)
+
+    # We are interested in paths that start in push_address, therefore
+    # we are going to shorten them and filter the ones that don't contain
+    # that address.
+    
+    all_possible_paths = map(lambda x: get_shortened_path(x,push_address), final_block_obj.get_paths())
+
+    filtered_paths = filter(lambda x: x != [], all_possible_paths)
+
+    print(all_possible_paths)
+    print(filtered_paths)
+    print("+++++++++++++++++++++++++++++")
+    print("Diccionario con clases de equivalencia")
+    print(filter_paths_by_concurring_inconditional_nodes(filtered_paths, blocks_dict))
+    
     # path_to_clone = get_main_path(final_block_obj.get_paths(), push_address)
     print("Clonando")
     # print push_address
@@ -114,8 +129,8 @@ def clone_path(blocks_dict, final_address, push_address, block_address, first_co
     #No vamos a separar el ultimo bloque del resto. Cuando lleguemos al final del todo,  
     clone_child(push_block_obj,initial_jumps_to, initial_falls_to,index_dict,block_address,blocks_dict,stack_in,globally_cloned,locally_cloned, path_to_clone, 1)
     
-    
-def clone_subpath(blocks_dict, final_address, push_address, pred_address, first_copy, globally_cloned, index_dict,last_address,locally_cloned, block_idx):
+
+def clone_subpath(blocks_dict, last_address, push_address, pred_address, first_copy, globally_cloned, index_dict, locally_cloned, block_idx):
     global cloned_blocks
     global stack_index
     global last_block_idx_dict
@@ -123,22 +138,30 @@ def clone_subpath(blocks_dict, final_address, push_address, pred_address, first_
     stack_in = stack_index[push_address][1]
     #print "EMPIEZA"
 
-    final_block_obj = blocks_dict[final_address]
-
-    print("Ultima direccion")
-    print final_address
-
-    print last_address
-
+    locally_cloned = []
+    
     # Preguntamos el camino en el bloque que queremos la direccion final.
     # Si lo preguntasemos en block, podriamos quedarnos con caminos mas largos de los que
     # nos interesan, pues puede ser un bucle y pasar varias veces por ese camino.
 
-
     path_to_clone = find_path(blocks_dict, push_address, last_address)
-    # path_to_clone = get_main_path(final_block_obj.get_paths(), push_address)
 
-    # path_to_clone.append(last_address)
+    # We are interested in paths that start in push_address, therefore
+    # we are going to shorten them and filter the ones that don't contain
+    # that address.
+    
+    all_possible_paths = map(lambda x: get_shortened_path(x,push_address) , blocks_dict[last_address].get_paths())
+
+    filtered_paths = filter(lambda x: x != [], all_possible_paths)
+    
+    print("+++++++++++++++++++++++++++++")
+    print("Diccionario con clases de equivalencia")
+    print(filter_paths_by_concurring_inconditional_nodes(filtered_paths, blocks_dict))
+    
+
+    # We need the before-last address in order to do the cloning properly
+    block_to_clone_address = path_to_clone[-2]
+
     print("Clonando camino secundario")
     # print push_address
     print path_to_clone
@@ -147,7 +170,7 @@ def clone_subpath(blocks_dict, final_address, push_address, pred_address, first_
     #No vamos a separar el ultimo bloque del resto. Cuando lleguemos al final del todo,
 
     
-    clone_block(push_address, final_address, blocks_dict, index_dict, stack_in, globally_cloned,locally_cloned,pred_address, path_to_clone, 1, block_idx)
+    clone_block(push_address, block_to_clone_address, blocks_dict, index_dict, stack_in, globally_cloned,locally_cloned,pred_address, path_to_clone, 1, block_idx)
 
 '''
 Given a list of paths from the initial node to the node, and a
@@ -158,6 +181,11 @@ def get_main_path(paths, address):
     for path in paths:
         if address in path:
             return path[path.index(address):]#TODO: Find start point and return it
+    return []
+
+def get_shortened_path(path, push_address):
+    if push_address in path:
+        return path[path.index(push_address):]
     return []
     
     
@@ -198,7 +226,8 @@ def clone(block, blocks_input, globally_cloned, index_dict):
         for push_address in push_addresses:
             #Si ya hemos clonado el nodo que ha hecho el push, entonces el camino que estamos
             #considerando es un subcamino de uno mas largo que ya hemos clonado.
-            if (push_address not in globally_cloned) and (a == first_push[push_address]):
+            #if (push_address not in globally_cloned) and (a == first_push[push_address]):
+            if a == first_push[push_address]:
                 clone_path(blocks_dict, a, push_address, block.get_start_address(), first_copy, globally_cloned, index_dict)
                 first_copy = False
         i = i+1
@@ -230,6 +259,7 @@ def clone_block(block_address, end_address, blocks_input, idx_dict, stack_in, gl
 
         print type(block_idx)
         print block_idx
+        
         if type(block_idx) == int:
             new_start_address = str(old_start_address)+"_"+str(block_idx)
         else:
@@ -267,7 +297,7 @@ def clone_block(block_address, end_address, blocks_input, idx_dict, stack_in, gl
         clone_child(block_dup,jumps_to,falls_to,idx_dict,end_address,blocks_input,stack_out,globally_cloned,locally_cloned, path_to_clone, path_idx)
 
         #locally_cloned only keeps the current execution path that leads to clone things
-        locally_cloned.pop()
+        # locally_cloned.pop()
 
         #block_dup.display()
        # block_dup.display()
@@ -304,7 +334,8 @@ def update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_addres
         new_jump_address = get_next_block_address(jumps_to, idx_dict)
         block_dup.set_jump_target(new_jump_address,True)
         block_dup.set_list_jump([new_jump_address])
-        clone_subpath(blocks_input, end_address, jumps_to, pred_new, True, globally_cloned, idx_dict, path_to_clone[-1], locally_cloned, new_jump_address)
+        
+        clone_subpath(blocks_input, possible_final_address, jumps_to, pred_new, True, globally_cloned, idx_dict, locally_cloned, new_jump_address)
 
 
     else:
@@ -352,17 +383,32 @@ def update_falls_to(block_dup, falls_to, idx_dict, locally_cloned, end_address, 
         # index of that node, and add current node to its comes_from list
         
         block_address = block_dup.get_start_address()
+
+        # If int, it's first node of the path, and therefore index is the following available
         if(type(block_address) == int):
             idx = idx_dict[block_address]
             new_falls_to = get_next_block_address(falls_to, idx_dict)
-        else: 
+        # Otherwise, we get next index by minimum
+        elif falls_to not in path_to_clone:
+            print("+++++++")
+            print("falls to not in path to clone")
             print("This is block address:")
             print block_address
             print("This is previous falls to")
             print falls_to
             idx = get_idx_from_address(block_address)
             new_falls_to = str(falls_to) + "_" + str(idx)
-        
+        else:
+            print("+++++++")
+            print("falls to in path to clone")
+            print("This is block address:")
+            print block_address
+            print("This is previous falls to")
+            print falls_to
+            idx = min(get_idx_from_address(block_address), idx_dict[get_initial_block_address(falls_to)] - 1)
+            print idx_dict[get_initial_block_address(block_address)] - 1
+            new_falls_to = str(falls_to) + "_" + str(idx)
+
         update_idx_dict(idx,falls_to,idx_dict)
         block_dup.set_falls_to(new_falls_to)
         
@@ -372,7 +418,7 @@ def update_falls_to(block_dup, falls_to, idx_dict, locally_cloned, end_address, 
         # If we haven't copied it yet, but it makes a push related
         # another path which hasn't been cloned yet, we clone that subpath.
         elif possible_final_address != -1:
-            clone_subpath(blocks_input, end_address, falls_to, pred_new, True, globally_cloned, idx_dict, path_to_clone[-1], locally_cloned, idx)
+            clone_subpath(blocks_input, possible_final_address, falls_to, pred_new, True, globally_cloned, idx_dict, locally_cloned, idx)
 
         else:
             clone_block(falls_to,end_address,blocks_input,idx_dict,stack_out,globally_cloned,locally_cloned,pred_new, path_to_clone, path_idx, idx)
@@ -504,12 +550,7 @@ def update_comes_from(pred_list,idx,address,cloned):
             comes_from.append(str(b)+"_"+str(idx))
         else:
             comes_from = filter(lambda x: x == address,pred_list)
-    return comes_from
-
-
-def get_minimum_len(paths):
-    l = map(lambda x: len(x),paths)
-    return min(l)                
+    return comes_from               
 
 '''
 blocks_to_clone-> lista con los bloques a clonar
@@ -528,14 +569,36 @@ def compute_cloning(blocks_to_clone,blocks_input,stack_info, address_info):
 
     globally_cloned = []
 
+    # print("Graph consistent:")
+    # print(check_graph_consistency(blocks_input))
+
+    print(address_info)    
     get_first_push(blocks_dict)
+
+    global first_push
+    print(first_push)
+
+    print("All paths")
+    show_paths(blocks_input)
 
     index_dict = get_index_dict(blocks_input)
 
     for b in blocks_to_clone:
+        print("Hay que clonar")
+        print(b.get_start_address())
         clone(b, blocks_dict, globally_cloned, index_dict)
 
-    delete_old_blocks(globally_cloned, blocks_input)
+    #delete_old_blocks(globally_cloned, blocks_input)
+
+    visited_blocks = calculate_comes_from(blocks_input)
+
+    # We have to delete non-visited blocks
+    blocks_to_delete = set(blocks_input.keys()).difference(set(visited_blocks))
+    
+    delete_old_blocks(blocks_to_delete, blocks_input)
+    
+    print("Graph consistent:")
+    print(check_graph_consistency(blocks_input))
 
     # print ("Copias")
     # print blocks_input['361_1'].get_list_jumps()
@@ -608,3 +671,236 @@ def check_if_consistent_path(path):
             return False
     return True
 
+''' Given a node and where it comes from, checks all relevant info is consistent'''
+def check_node_consistency(blocks_dict, initial_address, comes_from_address, visited_nodes):
+    
+    current_block = blocks_dict[initial_address]
+
+    comes_from = current_block.get_comes_from()
+
+    # List containing all the values checked
+    conds = []
+    
+    # Always same condition: check if previous block is in comes_from list
+    conds.append(comes_from_address in comes_from)
+    
+    if initial_address not in visited_nodes:
+        
+        t = current_block.get_block_type()
+
+        jumps_to = current_block.get_jump_target()
+        falls_to = current_block.get_falls_to()
+
+        visited_nodes.append(initial_address)
+
+        # Conditional jump: check comes_from + falls to node + jump target node
+        if t == "conditional":
+
+            conds.append(check_node_consistency(blocks_dict,falls_to, initial_address,visited_nodes))
+            conds.append(check_node_consistency(blocks_dict,jumps_to, initial_address,visited_nodes))
+
+            print("conditional check")
+
+       # Unconditional jump : check length of jump list + comes_from + 
+       # jumps target is the element of jump list + jump target node +
+       # falls_to == None
+        elif t == "unconditional":
+
+            jump_list = current_block.get_list_jumps()
+            
+            conds.append(len(jump_list) == 1)
+            conds.append(jumps_to in jump_list)
+            conds.append(check_node_consistency(blocks_dict,jumps_to, initial_address, visited_nodes))
+            conds.append(falls_to == None)
+            print("Falls_to")
+            print(falls_to)
+
+            print("unconditional check")
+        
+        # Falls to node: check comes_from + next_node + jumps_to == None
+        elif t == "falls_to":
+            
+            conds.append(check_node_consistency(blocks_dict, falls_to, initial_address, visited_nodes))
+            conds.append(jumps_to == 0)
+
+            print("Jumps to")
+            print(jumps_to)
+
+            print("falls to check")
+            
+        # Terminal node: only check comes_from
+
+        else:
+            print("terminal node to check")
+        
+    # If visited, as we've checked that node before, we just need to make sure
+    # comes_from has current node.
+
+    else:
+        print("already checked")
+    print(initial_address)
+    print(conds)
+    return reduce(lambda i,j: i and j, conds)
+
+''' Given a dictionary containing all blocks from graph, checks if all the info
+is coherent '''
+def check_graph_consistency(blocks_dict, initial_address = 0):
+    visited_nodes = [initial_address]
+    initial_block = blocks_dict[initial_address]
+
+    t = initial_block.get_block_type()
+
+    jumps_to = initial_block.get_jump_target()
+    falls_to = initial_block.get_falls_to()
+
+    conds = []
+
+    # Conditional jump: call check_node with falls_to && jump_target && all visited nodes are blocks
+    # are the ones in block_dict
+    if t == "conditional":
+         
+         conds.append(check_node_consistency(blocks_dict,falls_to, initial_address,visited_nodes))
+         conds.append(check_node_consistency(blocks_dict,jumps_to, initial_address,visited_nodes))
+         
+         print("initial node: conditional")
+         
+    # Unconditional jump : check length of jump list && comes_from && 
+    # jumps target is the element of jump list && jump target node &&
+    # falls_to == None
+    elif t == "unconditional":
+         
+         jump_list = current_block.get_list_jumps()
+         
+         conds.append(len(jumps_list) == 1)
+         conds.append(jumps_to in jump_list)
+         conds.append(check_node_consistency(blocks_dict,jumps_to, initial_address, visited_nodes))
+         conds.append(falls_to == None)
+
+         print("initial node: unconditional")
+         
+    # Falls to node: visited nodes == blocks_dict.keys && check  next_node  && jumps_to == None
+    elif t == "falls_to":
+        
+         conds.append(check_node_consistency(blocks_dict, falls_to, initial_address, visited_nodes))
+         conds.append(jumps_to == 0)
+         
+         print("initial node: falls to")
+         
+    # Terminal node: only check there's no other block
+    else:
+         
+         print("initial Node: terminal node")
+
+    # Check all visited nodes are the same in the dictionary
+    conds.append(visited_nodes.sort() == blocks_dict.keys().sort())
+
+    print(conds)
+    
+    return reduce(lambda i,j: i and j, conds)
+
+
+''' Given a node and where it comes from, updates info from comes_from'''
+def calculate_comes_from_node(blocks_dict, initial_address, comes_from_address, visited_nodes):
+
+    print(initial_address)
+    
+    current_block = blocks_dict[initial_address]
+    
+    if initial_address not in visited_nodes:
+        
+        t = current_block.get_block_type()
+
+        jumps_to = current_block.get_jump_target()
+        falls_to = current_block.get_falls_to()
+
+        visited_nodes.append(initial_address)
+
+        current_block.set_comes_from([comes_from_address])
+        
+        # Conditional jump: update jumps_to and falls_to
+        if t == "conditional":
+            print("+++ Changing comes_from from conditional node +++")
+            calculate_comes_from_node(blocks_dict,falls_to, initial_address,visited_nodes)
+            calculate_comes_from_node(blocks_dict,jumps_to, initial_address,visited_nodes)
+            
+       # Unconditional jump : update jumps_to
+        elif t == "unconditional":
+            print("+++ Changing comes_from from inconditional node +++")
+            calculate_comes_from_node(blocks_dict,jumps_to, initial_address, visited_nodes)
+            
+        # Falls to node: update falls_to
+        elif t == "falls_to":
+            print("+++ Changing comes_from from falls_to node +++")
+            calculate_comes_from_node(blocks_dict, falls_to, initial_address, visited_nodes)
+        
+        # Terminal node: nothing to change
+        
+    # If visited, as we've checked that node before, we just add new address to comes_from
+    else:
+        current_block.add_origin(comes_from_address)
+
+        
+''' Given a dictionary with all graph info, and an initial address (by default, 0),
+updates comes_from info for each node reachable from 0.
+Returns a list with all visited nodes'''
+def calculate_comes_from(blocks_dict, initial_address = 0):
+    visited_nodes = [initial_address]
+    initial_block = blocks_dict[initial_address]
+
+    t = initial_block.get_block_type()
+
+    jumps_to = initial_block.get_jump_target()
+    falls_to = initial_block.get_falls_to()
+    
+    # Conditional jump: update comes_from from both falls_to and jumps_to 
+    if t == "conditional":
+         print("initial node comes from: conditional")
+         calculate_comes_from_node(blocks_dict,falls_to, initial_address,visited_nodes)
+         calculate_comes_from_node(blocks_dict,jumps_to, initial_address,visited_nodes)
+
+    # Unconditional jump: update comes_from from just jumps_to
+    elif t == "unconditional":
+         print("initial node comes from: unconditional")
+         calculate_comes_from_node(blocks_dict,jumps_to, initial_address, visited_nodes)
+         
+    # Falls to node: update comes_from from just falls_to
+    elif t == "falls_to":
+         print("initial node comes from: falls to")
+         calculate_comes_from_node(blocks_dict, falls_to, initial_address, visited_nodes)
+        
+    # Terminal node: nothing to do
+
+    return visited_nodes
+
+
+# For debugging
+def show_paths(blocks_dict):
+    for block in blocks_dict:
+        print("Block paths: " + str(block))
+        print(blocks_dict[block].get_paths())
+
+''' Given paths with the same beginning and end and info from nodes, finds different equivalence classes and stores a representant for each of them. Two paths are considered equivalent if they share the same inconditional nodes with various jumps in the same order.'''
+def filter_paths_by_concurring_inconditional_nodes(paths, blocks_dict):
+    equivalence_classes = {}
+    for path in paths:
+        standard_representation = tuple(obtain_standard_representation(path, blocks_dict))
+        if standard_representation not in equivalence_classes:
+            equivalence_classes[standard_representation] = path
+
+    return equivalence_classes
+        
+
+
+
+''' Given a path and info from nodes, obtains all inconditional nodes with varios jumps from path. '''
+def obtain_standard_representation(path, blocks_dict):
+    new_representation = []
+    for address in path:
+        block = blocks_dict[address]
+        t = block.get_block_type()
+        list_jumps = block.get_list_jumps()
+        if (t == "unconditional") and (len(list_jumps) > 1):
+            new_representation.append(address)
+    return new_representation
+
+    
