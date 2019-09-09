@@ -75,7 +75,7 @@ def clone_path(blocks_dict, final_address, push_address, block_address, first_co
     global stack_index
     global last_block_idx_dict
     global cloned_block_counter
-
+    
     stack_in = stack_index[push_address][1]
     #print "EMPIEZA"
 
@@ -90,7 +90,7 @@ def clone_path(blocks_dict, final_address, push_address, block_address, first_co
 
     final_block_obj = blocks_dict[final_address]
 
-    locally_cloned = []
+    # locally_cloned = []
 
     cloned_block_counter = {}
 
@@ -98,7 +98,7 @@ def clone_path(blocks_dict, final_address, push_address, block_address, first_co
     # Si lo preguntasemos en block, podriamos quedarnos con caminos mas largos de los que
     # nos interesan, pues puede ser un bucle y pasar varias veces por ese camino.
 
-    path_to_clone = find_path(blocks_dict, push_address, final_address)
+    # path_to_clone = find_path(blocks_dict, push_address, final_address)
 
     # We are interested in paths that start in push_address, therefore
     # we are going to shorten them and filter the ones that don't contain
@@ -108,26 +108,36 @@ def clone_path(blocks_dict, final_address, push_address, block_address, first_co
 
     filtered_paths = filter(lambda x: x != [], all_possible_paths)
 
-    print(all_possible_paths)
-    print(filtered_paths)
+    paths_to_clone = filter_paths_by_concurring_inconditional_nodes(filtered_paths, blocks_dict)
+
+    # print(all_possible_paths)
+    # print(filtered_paths)
     print("+++++++++++++++++++++++++++++")
     print("Diccionario con clases de equivalencia")
-    print(filter_paths_by_concurring_inconditional_nodes(filtered_paths, blocks_dict))
-    
-    # path_to_clone = get_main_path(final_block_obj.get_paths(), push_address)
-    print("Clonando")
-    # print push_address
-    print path_to_clone
-    #modify_jump_first_block(push_block_obj,b,i)
+    print(paths_to_clone)
 
-    initial_jumps_to = push_block_obj.get_jump_target()
+    for tuple_to_clone in paths_to_clone.values():
 
-    # print initial_jumps_to
+        locally_cloned = []
 
-    initial_falls_to = push_block_obj.get_falls_to()
+        path_to_clone = list(tuple_to_clone)
+        
+        # path_to_clone = get_main_path(final_block_obj.get_paths(), push_address)
+        print("Clonando")
+        # print push_address
+        print path_to_clone
+        #modify_jump_first_block(push_block_obj,b,i)
 
-    #No vamos a separar el ultimo bloque del resto. Cuando lleguemos al final del todo,  
-    clone_child(push_block_obj,initial_jumps_to, initial_falls_to,index_dict,block_address,blocks_dict,stack_in,globally_cloned,locally_cloned, path_to_clone, 1)
+        initial_jumps_to = push_block_obj.get_jump_target()
+
+        # print initial_jumps_to
+
+        initial_falls_to = push_block_obj.get_falls_to()
+
+        #No vamos a separar el ultimo bloque del resto. Cuando lleguemos al final del todo,  
+        clone_child(push_block_obj,initial_jumps_to, initial_falls_to,index_dict,block_address,blocks_dict,stack_in,globally_cloned,locally_cloned, path_to_clone, 1)
+
+        first_copy = False
     
 
 def clone_subpath(blocks_dict, last_address, push_address, pred_address, first_copy, globally_cloned, index_dict, locally_cloned, block_idx):
@@ -144,7 +154,7 @@ def clone_subpath(blocks_dict, last_address, push_address, pred_address, first_c
     # Si lo preguntasemos en block, podriamos quedarnos con caminos mas largos de los que
     # nos interesan, pues puede ser un bucle y pasar varias veces por ese camino.
 
-    path_to_clone = find_path(blocks_dict, push_address, last_address)
+    # path_to_clone = find_path(blocks_dict, push_address, last_address)
 
     # We are interested in paths that start in push_address, therefore
     # we are going to shorten them and filter the ones that don't contain
@@ -154,23 +164,25 @@ def clone_subpath(blocks_dict, last_address, push_address, pred_address, first_c
 
     filtered_paths = filter(lambda x: x != [], all_possible_paths)
     
-    print("+++++++++++++++++++++++++++++")
-    print("Diccionario con clases de equivalencia")
-    print(filter_paths_by_concurring_inconditional_nodes(filtered_paths, blocks_dict))
+    # print("+++++++++++++++++++++++++++++")
+    # print("Diccionario con clases de equivalencia")
+    # print(filter_paths_by_concurring_inconditional_nodes(filtered_paths, blocks_dict))
+
+    paths_to_clone = filter_paths_by_concurring_inconditional_nodes(filtered_paths, blocks_dict)
+
+    for path_to_clone in paths_to_clone.values():
+
+        # We need the before-last address in order to do the cloning properly
+        block_to_clone_address = path_to_clone[-2]
+
+        print("Clonando camino secundario")
+        # print push_address
+        print path_to_clone
+        #modify_jump_first_block(push_block_obj,b,i)
+
+        #No vamos a separar el ultimo bloque del resto. Cuando lleguemos al final del todo,
     
-
-    # We need the before-last address in order to do the cloning properly
-    block_to_clone_address = path_to_clone[-2]
-
-    print("Clonando camino secundario")
-    # print push_address
-    print path_to_clone
-    #modify_jump_first_block(push_block_obj,b,i)
-
-    #No vamos a separar el ultimo bloque del resto. Cuando lleguemos al final del todo,
-
-    
-    clone_block(push_address, block_to_clone_address, blocks_dict, index_dict, stack_in, globally_cloned,locally_cloned,pred_address, path_to_clone, 1, block_idx)
+        clone_block(push_address, block_to_clone_address, blocks_dict, index_dict, stack_in, globally_cloned,locally_cloned,pred_address, path_to_clone, 1, block_idx)
 
 '''
 Given a list of paths from the initial node to the node, and a

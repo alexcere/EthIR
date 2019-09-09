@@ -936,14 +936,14 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
             vertices[successor].add_origin(block) #to compute which are the blocks that leads to successor
 
-            #if not(vertices[successor].known_stack(list(stack))):
-            path.append((block,successor))
-            sym_exec_block(new_params, successor, block, depth, func_call,current_level+1,path)
-            path.pop()
-            #else:
-                #if vertices[successor].get_depth_level()<(current_level+1): 
-                    #vertices[successor].set_depth_level(current_level+1)
-                    #update_depth_level(successor,current_level+1,[])
+            if not(vertices[successor].known_stack(list(stack))):
+                path.append((block,successor))
+                sym_exec_block(new_params, successor, block, depth, func_call,current_level+1,path)
+                path.pop()
+            else:
+                if vertices[successor].get_depth_level()<(current_level+1): 
+                    vertices[successor].set_depth_level(current_level+1)
+                    update_depth_level(successor,current_level+1,[])
                     
         else:
             if successor not in blocks_to_create:
@@ -955,16 +955,16 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
         vertices[successor].add_origin(block) #to compute which are the blocks that leads to successor
         new_params = params.copy()
         new_params.global_state["pc"] = successor
-        # if not(vertices[successor].known_stack(list(stack))):
-        path.append((block,successor))
+        if not(vertices[successor].known_stack(list(stack))):
+            path.append((block,successor))
             
-        sym_exec_block(new_params, successor, block, depth, func_call,current_level+1,path)
-        path.pop()
-        #else:
+            sym_exec_block(new_params, successor, block, depth, func_call,current_level+1,path)
+            path.pop()
+        else:
 
-            #if vertices[successor].get_depth_level()<(current_level+1):
-                #vertices[successor].set_depth_level(current_level+1)
-                #update_depth_level(successor,current_level+1,[])
+            if vertices[successor].get_depth_level()<(current_level+1):
+                vertices[successor].set_depth_level(current_level+1)
+                update_depth_level(successor,current_level+1,[])
 
     elif jump_type[block] == "conditional":  # executing "JUMPI"
 
@@ -980,17 +980,17 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
                 #new_params.analysis["time_dependency_bug"][last_idx] = global_state["pc"]
         if left_branch in vertices:
             vertices[left_branch].add_origin(block) #to compute which are the blocks that leads to successor
-            #if not(vertices[left_branch].known_stack(list(stack))):
+            if not(vertices[left_branch].known_stack(list(stack))):
             # if (((block,left_branch) not in path)):
             #     if potential_jump:
             #         potential_jump = False
-            path.append((block,left_branch))
-            sym_exec_block(new_params, left_branch, block, depth, func_call,current_level+1,path)
-            path.pop()
-            #else:
-                #if vertices[left_branch].get_depth_level() < (current_level+1):
-                    #vertices[left_branch].set_depth_level(current_level+1)
-                    #update_depth_level(left_branch,current_level+1,[])
+                path.append((block,left_branch))
+                sym_exec_block(new_params, left_branch, block, depth, func_call,current_level+1,path)
+                path.pop()
+            else:
+                if vertices[left_branch].get_depth_level() < (current_level+1):
+                    vertices[left_branch].set_depth_level(current_level+1)
+                    update_depth_level(left_branch,current_level+1,[])
                 # else:
             #     # if not potential_jump:
             #     #     potential_jump = True
@@ -2722,7 +2722,7 @@ def run_build_cfg_and_analyze(evm_v = False,timeout_cb=do_nothing):
     global g_timeout
 
     if not debug_info:
-        global_params.GLOBAL_TIMEOUT = 30
+        global_params.GLOBAL_TIMEOUT = 180
         
     try:
         with Timeout(sec=global_params.GLOBAL_TIMEOUT):
@@ -2997,8 +2997,7 @@ def run(disasm_file=None, disasm_file_init = None,  source_file=None, source_map
     
     if len(blocks_to_clone)!=0:
         try:
-            print("He llegado antes del cloning")
-            compute_cloning(blocks_to_clone,vertices,stack_h, push_jump_relations)
+            compute_cloning(blocks_to_clone,vertices,stack_h,component_of_blocks)
         except:
             traceback.print_exc()
             raise Exception("Error in clonning process",3)
