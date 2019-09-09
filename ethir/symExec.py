@@ -2722,7 +2722,7 @@ def run_build_cfg_and_analyze(evm_v = False,timeout_cb=do_nothing):
     global g_timeout
 
     if not debug_info:
-        global_params.GLOBAL_TIMEOUT = 180
+        global_params.GLOBAL_TIMEOUT = 30
         
     try:
         with Timeout(sec=global_params.GLOBAL_TIMEOUT):
@@ -2997,6 +2997,7 @@ def run(disasm_file=None, disasm_file_init = None,  source_file=None, source_map
     
     if len(blocks_to_clone)!=0:
         try:
+            print("He llegado antes del cloning")
             compute_cloning(blocks_to_clone,vertices,stack_h, push_jump_relations)
         except:
             traceback.print_exc()
