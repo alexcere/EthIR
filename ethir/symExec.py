@@ -2997,7 +2997,7 @@ def run(disasm_file=None, disasm_file_init = None,  source_file=None, source_map
     
     if len(blocks_to_clone)!=0:
         try:
-            compute_cloning(blocks_to_clone,vertices,stack_h,component_of_blocks)
+           compute_cloning(blocks_to_clone,vertices,stack_h, push_jump_relations)
         except:
             traceback.print_exc()
             raise Exception("Error in clonning process",3)
