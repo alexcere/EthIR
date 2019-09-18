@@ -25,6 +25,9 @@ def init():
 
     global first_copy
     first_copy = True
+
+    global not_already_cloned_node_found
+    not_already_cloned_node_found = True
     
 
 '''
@@ -276,8 +279,9 @@ def clone_block(block_address, end_address, blocks_input, idx_dict, stack_in, gl
         
         jumps_to = block_dup.get_jump_target()
         falls_to = block_dup.get_falls_to()
-        locally_cloned.append(get_initial_block_address(block_address))
-        
+
+        locally_cloned.append(block_address)
+
         #Solo se pone el origen del que viene, pues se empieza directamente desde el clone_child
         block_dup.add_origin(pred)
 

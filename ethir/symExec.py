@@ -933,7 +933,8 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
                 
         
         if successor in vertices:
-
+            
+            # Mirar si clonarlo o no TODO
             vertices[successor].add_origin(block) #to compute which are the blocks that leads to successor
 
             if not(vertices[successor].known_stack(list(stack))):
@@ -955,6 +956,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
         vertices[successor].add_origin(block) #to compute which are the blocks that leads to successor
         new_params = params.copy()
         new_params.global_state["pc"] = successor
+
         if not(vertices[successor].known_stack(list(stack))):
             path.append((block,successor))
             
