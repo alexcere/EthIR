@@ -471,6 +471,8 @@ def get_push_value(elem):
     except:
         return elem
 
+# Added by AHC
+
 def get_initial_block_address(elem):
     numbers = str(elem).split("_")
     return int(numbers[0])
@@ -478,6 +480,7 @@ def get_initial_block_address(elem):
 def get_next_block_address(elem, index_dict):
     numbers = str(elem).split("_")
     idx = str(index_dict[int(numbers[0])])
+
     if len(numbers) == 1:
         numbers.append(idx)
     else:
@@ -492,3 +495,10 @@ def get_idx_from_address(address):
     parts = address.split("_")
     idx = parts[1]
     return int(idx)
+
+# For checking if they are same stack, we just focus on
+# tuples that contains a block address
+def check_if_same_stack(stack1, stack2, blocks_info):
+    s1_aux = filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info),stack1)
+    s2_aux = filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info),stack2)
+    return s1_aux == s2_aux

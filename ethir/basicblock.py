@@ -442,7 +442,9 @@ class BasicBlock:
         new_obj.set_access_array(self.access_array)
         new_obj.set_div_invalid_pattern(self.div_invalid_pattern)
         new_obj.set_assertfail_in_getter(self.assertfail_in_getter)
-        new_obj.set_stacks(self.stacks_old)
+
+        #AHC: When we copy, we just forget about old stacks
+        new_obj.set_stacks([])
         return new_obj
 
     def is_direct_block(self):
