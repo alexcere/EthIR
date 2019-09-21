@@ -956,7 +956,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
             else:
                 # We make a copy for the successor
                 new_successor = vertices[successor].copy()
-
+                
                 # We obtain new index from block_cont and update the value
                 idx = block_cont.get(successor, 0)
                 block_cont[successor] = idx + 1
@@ -971,6 +971,13 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
                 new_successor.add_origin(block)
                 vertices[new_successor_address] = new_successor
                 vertices[block].set_jump_target(new_successor_address)
+
+                # This maps have already been initialized for each block,
+                # therefore we initilize them for new blocks, using info from successor (not neccesary)
+                stack_h[new_successor_address] = stack_h[successor]
+                calldataload_values[new_successor_address] = calldataload_values[successor] 
+                edges[new_successor_address] = edges[successor]
+                jump_type[new_successor_address] = jump_type[successor]
 
                 # Finally, we keep on cloning
                 path.append((block, new_successor_address))
@@ -1036,6 +1043,14 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
                 vertices[new_successor_address] = new_successor
                 vertices[block].set_falls_to(new_successor_address)
 
+                
+                # This maps have already been initialized for each block,
+                # therefore we initilize them for new blocks, using info from successor (not neccesary)
+                stack_h[new_successor_address] = stack_h[successor]
+                calldataload_values[new_successor_address] = calldataload_values[successor] 
+                edges[new_successor_address] = edges[successor]
+                jump_type[new_successor_address] = jump_type[successor]
+                
                 # Finally, we keep on cloning
                 path.append((block, new_successor_address))
                 sym_exec_block(new_params, new_successor_address, block, depth, func_call,current_level+1,path)
@@ -1101,6 +1116,14 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
                 vertices[new_successor_address] = new_successor
                 vertices[block].set_jump_target(new_successor_address)
 
+                
+                # This maps have already been initialized for each block,
+                # therefore we initilize them for new blocks, using info from successor (not neccesary)
+                stack_h[new_successor_address] = stack_h[left_branch]
+                calldataload_values[new_successor_address] = calldataload_values[left_branch] 
+                edges[new_successor_address] = edges[left_branch]
+                jump_type[new_successor_address] = jump_type[left_branch]
+                
                 # Finally, we keep on cloning
                 path.append((block, new_successor_address))
                 sym_exec_block(new_params, new_successor_address, block, depth, func_call,current_level+1,path)
@@ -1167,7 +1190,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
             # We filter all nodes with same beginning, and check if there's one of those
             # nodes with same stack. Notice that one block may contain several stacks
-            all_successor_copies = filter(lambda x: get_initial_block_address(x) == get_initial_push_address(right_branch), visited)
+            all_successor_copies = filter(lambda x: get_initial_block_address(x) == get_initial_block_address(right_branch), visited)
             same_stack_successors = filter(lambda x: filter(lambda y: check_if_same_stack(y, stack, vertices), vertices[x].get_stacks()) != [] , all_successor_copies)
 
             if len(same_stack_successors) > 0:
@@ -1196,6 +1219,15 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
                 vertices[new_successor_address] = new_successor
                 vertices[block].set_falls_to(new_successor_address)
 
+                
+                # This maps have already been initialized for each block,
+                # therefore we initilize them for new blocks, using info from successor (not neccesary)
+                stack_h[new_successor_address] = stack_h[right_branch]
+                calldataload_values[new_successor_address] = calldataload_values[right_branch] 
+                edges[new_successor_address] = edges[right_branch]
+                jump_type[new_successor_address] = jump_type[right_branch]
+
+                
                 # Finally, we keep on cloning
                 path.append((block, new_successor_address))
                 sym_exec_block(new_params, new_successor_address, block, depth, func_call,current_level+1,path)
