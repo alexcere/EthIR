@@ -1107,7 +1107,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
                 # Once we know the index, we just add it to the base address from the succesor
                 # and update the start address from the copy
-                new_successor_address = str(get_initial_block_address(successor)) + "_" + str(idx)
+                new_successor_address = str(get_initial_block_address(left_branch)) + "_" + str(idx)
                 new_successor.set_start_address(new_successor_address)
 
                 # We update info related to blocks: new successor comes from block,
