@@ -502,3 +502,18 @@ def check_if_same_stack(stack1, stack2, blocks_info):
     s1_aux = filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info),stack1)
     s2_aux = filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info),stack2)
     return s1_aux == s2_aux
+
+def show_graph(blocks_input):
+    for address in blocks_input:
+        print("Bloque: ")
+        print address
+        print("Comes from: ")
+        print blocks_input[address].get_comes_from()
+        print("List jump: ")
+        print blocks_input[address].get_list_jumps()
+        print("Jump target: ")
+        print blocks_input[address].get_jump_target()
+        print("Falls to: ")
+        print blocks_input[address].get_falls_to()
+        print("Stacks: ")
+        print blocks_input[address].get_stacks()

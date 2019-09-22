@@ -1,6 +1,6 @@
 import opcodes
 
-from utils import getLevel, get_initial_block_address, get_next_block_address, check_if_not_cloned_address, get_idx_from_address
+from utils import getLevel, get_initial_block_address, get_next_block_address, check_if_not_cloned_address, get_idx_from_address, show_graph
 
 import os
 from dot_tree import Tree, build_tree

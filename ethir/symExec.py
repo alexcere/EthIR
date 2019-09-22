@@ -295,6 +295,8 @@ def change_format(evm_version):
 
         
 def build_cfg_and_analyze(evm_version):
+    global vertices
+    
     change_format(evm_version)
     with open(g_disasm_file, 'r') as disasm_file:
         disasm_file.readline()  # Remove first line
@@ -318,7 +320,7 @@ def build_cfg_and_analyze(evm_version):
     #     p = vertices[e].get_paths()
     #     if len(p) > 1:
     #         print p
-        
+    show_graph(vertices)
     delete_uncalled()
     update_block_info()
     build_push_jump_relations()
@@ -749,6 +751,8 @@ def full_sym_exec():
     params = Parameter(path_conditions_and_vars=path_conditions_and_vars, global_state=global_state, analysis=analysis)
 
     #vertices[0].set_cost(vertices[0].get_block_gas())
+    global vertices
+    show_graph(vertices)
     
     return sym_exec_block(params, 0, 0, 0, -1, 0,[(0,0)])
 
@@ -785,6 +789,11 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
     analysis = params.analysis
     calls = params.calls
     param_abs = ("","")
+
+    print("Bloque: ")
+    print(block)
+    print("Pila antes de ejecutar:")
+    print(stack)
     
     vertices[block].add_stack(list(stack))
     if debug_info:
@@ -940,16 +949,27 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
         # AHC: If we find an already cloned block, we must check whether to copy it,
         # if leads to a possible non cloned path; or we can redirect to an existing one.
         if successor in visited:
-
+            print("Successor already visited: ")
+            print successor
+            print("From unconditional block: ")
+            print block
+            
             # We filter all nodes with same beginning, and check if there's one of those
             # nodes with same stack. Notice that one block may contain several stacks
             all_successor_copies = filter(lambda x: get_initial_block_address(x) == successor, visited)
             same_stack_successors = filter(lambda x: filter(lambda y: check_if_same_stack(y, stack, vertices), vertices[x].get_stacks()) != [] , all_successor_copies)
 
+            for i in all_successor_copies:
+                print("Pilas: ")
+                print(vertices[i].get_stacks())
+
+            print(stack)
+            
             if len(same_stack_successors) > 0:
                 #If it's already cloned, we just have to update info
                 already_cloned_successor = same_stack_successors[0]
 
+                # We have to add new origin to that block, not modify previous ones
                 vertices[already_cloned_successor].add_origin(block)
                 vertices[block].set_jump_target(already_cloned_successor)
                 
@@ -968,10 +988,11 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
                 # We update info related to blocks: new successor comes from block,
                 # block jumps to new successor and we store new successor in vertices
-                new_successor.add_origin(block)
+                new_successor.set_comes_from([block])
                 vertices[new_successor_address] = new_successor
                 vertices[block].set_jump_target(new_successor_address)
-
+                vertices[block].set_list_jump([new_successor_address])
+                
                 # This maps have already been initialized for each block,
                 # therefore we initilize them for new blocks, using info from successor (not neccesary)
                 stack_h[new_successor_address] = stack_h[successor]
@@ -1039,7 +1060,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
                 # We update info related to blocks: new successor comes from block,
                 # block jumps to new successor and we store new successor in vertices
-                new_successor.add_origin(block)
+                new_successor.set_comes_from([block])
                 vertices[new_successor_address] = new_successor
                 vertices[block].set_falls_to(new_successor_address)
 
@@ -1112,9 +1133,10 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
                 # We update info related to blocks: new successor comes from block,
                 # block jumps to new successor and we store new successor in vertices
-                new_successor.add_origin(block)
+                new_successor.set_comes_from([block])
                 vertices[new_successor_address] = new_successor
                 vertices[block].set_jump_target(new_successor_address)
+                vertices[block].set_list_jump([new_successor_address])
 
                 
                 # This maps have already been initialized for each block,
@@ -1215,7 +1237,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
                 # We update info related to blocks: new successor comes from block,
                 # block jumps to new successor and we store new successor in vertices
-                new_successor.add_origin(block)
+                new_successor.set_comes_from([block])
                 vertices[new_successor_address] = new_successor
                 vertices[block].set_falls_to(new_successor_address)
 
@@ -3197,12 +3219,12 @@ def run(disasm_file=None, disasm_file_init = None,  source_file=None, source_map
 
     compute_component_of_cfg()
     
-    if len(blocks_to_clone)!=0:
-        try:
-           compute_cloning(blocks_to_clone,vertices,stack_h, push_jump_relations)
-        except:
-            traceback.print_exc()
-            raise Exception("Error in clonning process",3)
+    # if len(blocks_to_clone)!=0:
+        # try:
+           # compute_cloning(blocks_to_clone,vertices,stack_h, push_jump_relations)
+        # except:
+            # traceback.print_exc()
+            # raise Exception("Error in clonning process",3)
         
     check_cfg_option(cfg,cname,execution,True,blocks_to_clone)
     
