@@ -796,6 +796,9 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
     calls = params.calls
     param_abs = ("","")
 
+    if block == 1731:
+        print "JIJI"
+    
     print("Bloque: ")
     print(block)
     print("Pila antes de ejecutar:")
@@ -946,7 +949,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
     elif jump_type[block] == "unconditional":  # executing "JUMP"
         successor = vertices[block].get_jump_target()
         new_params = params.copy()
-        new_params.global_state["pc"] = successor
+        new_params.global_state["pc"] = get_initial_block_address(successor)
         if g_src_map:
             source_code = g_src_map.get_source_code(global_state['pc'])
             if source_code in g_src_map.func_call_names:
@@ -965,6 +968,12 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
                 
             all_successor_copies = filter(lambda x: get_initial_block_address(x) == successor, vertices)
             same_stack_successors = filter(lambda x: filter(lambda y: check_if_same_stack(y, stack, vertices), vertices[x].get_stacks()) != [] , all_successor_copies)
+
+            if block == "4431_0":
+                print "YUJUUU"
+                print all_successor_copies
+                print same_stack_successors
+                
             
             for i in all_successor_copies:
                 print("Pilas: ")
@@ -975,19 +984,26 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
             if len(same_stack_successors) > 0:
                 #If it's already cloned, we just have to update info
                 already_cloned_successor = same_stack_successors[0]
-
+                
                 # We have to add new origin to that block, not modify previous ones
                 vertices[already_cloned_successor].add_origin(block)
                 vertices[block].set_jump_target(already_cloned_successor,True)
+
+                
+                old_edges = filter(lambda x: x!= successor, edges[block])
+                old_edges.append(already_cloned_successor)
+                edges[block] = old_edges
                 
             else:
                 # We make a copy for the successor
                 new_successor = vertices[successor].copy()
                 
+                
                 # We obtain new index from block_cont and update the value
-                idx = block_cont.get(successor, 0)
-                block_cont[successor] = idx + 1
-
+                original_successor = get_initial_block_address(successor)
+                idx = block_cont.get(original_successor, 0)
+                block_cont[original_successor] = idx + 1
+                
                 # Once we know the index, we just add it to the base address from the succesor
                 # and update the start address from the copy
                 new_successor_address = str(get_initial_block_address(successor)) + "_" + str(idx)
@@ -1038,7 +1054,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
         successor = vertices[block].get_falls_to()
 
         new_params = params.copy()
-        new_params.global_state["pc"] = successor
+        new_params.global_state["pc"] = get_initial_block_address(successor)
 
         # AHC: If we find an already cloned block, we must check whether to copy it,
         # if leads to a possible non cloned path; or we can redirect to an existing one.
@@ -1055,15 +1071,19 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
                 vertices[already_cloned_successor].add_origin(block)
                 vertices[block].set_falls_to(already_cloned_successor)
+                old_edges = filter(lambda x: x!= successor, edges[block])
+                old_edges.append(already_cloned_successor)
+                edges[block] = old_edges
                 
             else:
                 # We make a copy for the successor
                 new_successor = vertices[successor].copy()
 
                 # We obtain new index from block_cont and update the value
-                idx = block_cont.get(successor, 0)
-                block_cont[successor] = idx + 1
-
+                original_successor = get_initial_block_address(successor)
+                idx = block_cont.get(original_successor, 0)
+                block_cont[original_successor] = idx + 1
+                
                 # Once we know the index, we just add it to the base address from the succesor
                 # and update the start address from the copy
                 new_successor_address = str(get_initial_block_address(successor)) + "_" + str(idx)
@@ -1111,7 +1131,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
 
         new_params = params.copy()
-        new_params.global_state["pc"] = left_branch
+        new_params.global_state["pc"] = get_initial_block_address(left_branch)
         #new_params.path_conditions_and_vars["path_condition"].append(branch_expression)
         last_idx = len(new_params.path_conditions_and_vars["path_condition"]) - 1
                 #new_params.analysis["time_dependency_bug"][last_idx] = global_state["pc"]
@@ -1124,21 +1144,30 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
             # nodes with same stack. Notice that one block may contain several stacks
             all_successor_copies = filter(lambda x: get_initial_block_address(x) == left_branch, vertices)
             same_stack_successors = filter(lambda x: filter(lambda y: check_if_same_stack(y, stack, vertices), vertices[x].get_stacks()) != [] , all_successor_copies)
-                
+
+            if block == "4422_2":
+                print "LEFT"
+                print all_successor_copies
+                print same_stack_successors
+            
             if len(same_stack_successors) > 0:
                 #If it's already cloned, we just have to update info
                 already_cloned_successor = same_stack_successors[0]
 
                 vertices[already_cloned_successor].add_origin(block)
-                vertices[block].set_jumps_target(already_cloned_successor,True)
+                vertices[block].set_jump_target(already_cloned_successor,True)
+                old_edges = filter(lambda x: x!= left_branch, edges[block])
+                old_edges.append(already_cloned_successor)
+                edges[block] = old_edges
                 
             else:
                 # We make a copy for the successor
                 new_successor = vertices[left_branch].copy()
 
                 # We obtain new index from block_cont and update the value
-                idx = block_cont.get(left_branch, 0)
-                block_cont[left_branch] = idx + 1
+                original_left_branch = get_initial_block_address(left_branch)
+                idx = block_cont.get(original_left_branch, 0)
+                block_cont[original_left_branch] = idx + 1
 
                 # Once we know the index, we just add it to the base address from the succesor
                 # and update the start address from the copy
@@ -1216,7 +1245,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
         
         new_params = params.copy()
-        new_params.global_state["pc"] = right_branch
+        new_params.global_state["pc"] = get_initial_block_address(right_branch) 
         #new_params.path_conditions_and_vars["path_condition"].append(negated_branch_expression)
         last_idx = len(new_params.path_conditions_and_vars["path_condition"]) - 1
         #new_params.analysis["time_dependency_bug"][last_idx] = global_state["pc"]
@@ -1242,7 +1271,12 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
                         if check_if_same_stack(found_stack,stack,vertices):
                             same_stack_successors.append(found_successor)
                             break
-                        
+
+
+            if block == "4422_2":
+                print "RIGHT"
+                print all_successor_copies
+                print same_stack_successors
 #            same_stack_successors = filter(lambda x: filter(lambda y: check_if_same_stack(y, stack, vertices), vertices[x].get_stacks()) != [] , all_successor_copies)
 
             
@@ -1252,14 +1286,19 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
                 vertices[already_cloned_successor].add_origin(block)
                 vertices[block].set_falls_to(already_cloned_successor)
+                old_edges = filter(lambda x: x!= right_branch, edges[block])
+                old_edges.append(already_cloned_successor)
+                edges[block] = old_edges
+
                 
             else:
                 # We make a copy for the successor
                 new_successor = vertices[right_branch].copy()
 
                 # We obtain new index from block_cont and update the value
-                idx = block_cont.get(right_branch, 0)
-                block_cont[right_branch] = idx + 1
+                original_right_branch = get_initial_block_address(right_branch)
+                idx = block_cont.get(original_right_branch, 0)
+                block_cont[original_right_branch] = idx + 1
 
                 # Once we know the index, we just add it to the base address from the succesor
                 # and update the start address from the copy
@@ -1270,6 +1309,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
                 # block jumps to new successor and we store new successor in vertices
                 new_successor.set_comes_from([block])
                 vertices[new_successor_address] = new_successor
+                print "ADDR: "+str(new_successor_address)
                 vertices[block].set_falls_to(new_successor_address)
 
                 
@@ -2601,6 +2641,7 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
     #
     elif opcode.startswith('PUSH', 0):  # this is a push instruction
         position = int(opcode[4:], 10)
+        print global_state["pc"]
         global_state["pc"] = global_state["pc"] + 1 + position
         hs = str(instr_parts[1])[2:] #To delete 0x...
         if f_hashes and hs in f_hashes :
