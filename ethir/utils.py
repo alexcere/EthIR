@@ -499,8 +499,12 @@ def get_idx_from_address(address):
 # For checking if they are same stack, we just focus on
 # tuples that contains a block address
 def check_if_same_stack(stack1, stack2, blocks_info):
-    s1_aux = filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info),stack1)
-    s2_aux = filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info),stack2)
+    s1_aux = filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info) and x[0]!=0,stack1)
+    s2_aux = filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info) and x[0]!=0,stack2)
+    print "S1"
+    print s1_aux
+    print "S2"
+    print s2_aux
     return s1_aux == s2_aux
 
 def show_graph(blocks_input):

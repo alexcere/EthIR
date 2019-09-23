@@ -69,7 +69,7 @@ class BasicBlock:
         return self.falls_to
 
     def set_jump_target(self, address, cloning = None):
-        
+
         if isinstance(address, six.integer_types) and cloning == None:
             self.jump_target = address
         elif cloning:
@@ -423,7 +423,7 @@ class BasicBlock:
         if self.falls_to != None:
             new_obj.set_falls_to(self.falls_to)
             
-        new_obj.set_list_jump(list(self.list_jumps))
+        new_obj.set_list_jump([])
         # new_obj.set_list_jump([])
         new_obj._set_mload_values(self.mload_values.copy())
         new_obj._set_mstore_values(self.mstore_values.copy())
