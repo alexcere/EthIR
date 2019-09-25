@@ -966,18 +966,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
             # We filter all nodes with same beginning, and check if there's one of those
             # nodes with same stack. Notice that one block may contain several stacks
                 
-            all_successor_copies = filter(lambda x: get_initial_block_address(x) == successor, vertices)
-            same_stack_successors = filter(lambda x: filter(lambda y: check_if_same_stack(y, stack, vertices), vertices[x].get_stacks()) != [] , all_successor_copies)
-
-            if block == "4431_0":
-                print "YUJUUU"
-                print all_successor_copies
-                print same_stack_successors
-                
-            
-            for i in all_successor_copies:
-                print("Pilas: ")
-                print(vertices[i].get_stacks())
+            same_stack_successors = get_all_blocks_with_same_stack(successor, stack)
 
             print(stack)
             
@@ -1062,8 +1051,8 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
             # We filter all nodes with same beginning, and check if there's one of those
             # nodes with same stack. Notice that one block may contain several stacks
-            all_successor_copies = filter(lambda x: get_initial_block_address(x) == successor, vertices)
-            same_stack_successors = filter(lambda x: filter(lambda y: check_if_same_stack(y, stack, vertices), vertices[x].get_stacks()) != [] , all_successor_copies)
+            same_stack_successors = get_all_blocks_with_same_stack(successor, stack)
+
 
             if len(same_stack_successors) > 0:
                 #If it's already cloned, we just have to update info
@@ -1142,13 +1131,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
             # We filter all nodes with same beginning, and check if there's one of those
             # nodes with same stack. Notice that one block may contain several stacks
-            all_successor_copies = filter(lambda x: get_initial_block_address(x) == left_branch, vertices)
-            same_stack_successors = filter(lambda x: filter(lambda y: check_if_same_stack(y, stack, vertices), vertices[x].get_stacks()) != [] , all_successor_copies)
-
-            if block == "4422_2":
-                print "LEFT"
-                print all_successor_copies
-                print same_stack_successors
+            same_stack_successors = get_all_blocks_with_same_stack(left_branch, stack)
             
             if len(same_stack_successors) > 0:
                 #If it's already cloned, we just have to update info
@@ -1258,27 +1241,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
             # We filter all nodes with same beginning, and check if there's one of those
             # nodes with same stack. Notice that one block may contain several stacks
-            all_successor_copies = filter(lambda x: get_initial_block_address(x) == get_initial_block_address(right_branch), vertices)
-            same_stack_successors = []
-            for found_successor in all_successor_copies:
-                list_stacks = vertices[found_successor].get_stacks()
-                print list_stacks
-                if list_stacks == [[]]:
-                    if filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info) and x[0]!=0,stack) == []:
-                        same_stack_successors.append(found_successor)
-                else:
-                    for found_stack in list_stacks:
-                        if check_if_same_stack(found_stack,stack,vertices):
-                            same_stack_successors.append(found_successor)
-                            break
-
-
-            if block == "4422_2":
-                print "RIGHT"
-                print all_successor_copies
-                print same_stack_successors
-#            same_stack_successors = filter(lambda x: filter(lambda y: check_if_same_stack(y, stack, vertices), vertices[x].get_stacks()) != [] , all_successor_copies)
-
+            same_stack_successors = get_all_blocks_with_same_stack(right_branch, stack)
             
             if len(same_stack_successors) > 0:
                 #If it's already cloned, we just have to update info
@@ -1374,6 +1337,28 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
     r = compute_loop_scc(block)
     if r and block not in scc_unary:
         scc_unary.append(block)
+
+# Given a block and current stack, returns all blocks that share same initial name
+# and has the same stack (it's supposed to be at most one)
+def get_all_blocks_with_same_stack(successor, stack):
+    global vertices
+    
+    all_successor_copies = filter(lambda x: get_initial_block_address(x) == get_initial_block_address(successor), vertices)
+    same_stack_successors = []
+    
+    for found_successor in all_successor_copies:
+        list_stacks = vertices[found_successor].get_stacks()
+        if list_stacks == [[]]:
+            if filter(lambda x: isinstance(x,tuple) and (x[0] in vertices) and x[0]!=0,stack) == []:
+                same_stack_successors.append(found_successor)
+        else:
+            for found_stack in list_stacks:
+                if check_if_same_stack(found_stack,stack,vertices):
+                    same_stack_successors.append(found_successor)
+                    break
+    return same_stack_successors
+
+
     
 # Symbolically executing an instruction
 def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
