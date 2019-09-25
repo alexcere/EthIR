@@ -71,10 +71,10 @@ def build_tree(block,visited,block_input,condTrue = "t"):
     falls_to = block.get_falls_to()
     list_jumps = block.get_list_jumps()
 
-    #print "BUILD TREE"
-    #print start
-    #print falls_to
-    #print list_jumps
+    print "BUILD TREE"
+    print start
+    print falls_to
+    print list_jumps
     
     type_block = block.get_block_type()
 
@@ -86,8 +86,8 @@ def build_tree(block,visited,block_input,condTrue = "t"):
     for block_id in list_jumps:
         if (start,block_id) not in visited:
             visited.append((start,block_id))
-            #print("Siguiente:")
-            #print block_id
+            print("Siguiente:")
+            print block_id
             if type_block == "conditional":
                 ch = build_tree(block_input.get(block_id),visited,block_input)
             else:
@@ -101,9 +101,9 @@ def build_tree(block,visited,block_input,condTrue = "t"):
         if type_block == "falls_to":
             ch = build_tree(block_input.get(falls_to),visited,block_input,"")
         else:
-            #print("Falls to")
-            #print start
-            #print falls_to
+            print("Falls to")
+            print start
+            print falls_to
             ch = build_tree(block_input.get(falls_to),visited,block_input,"f")
         if ch not in r.get_children():
             r.add_child(ch)

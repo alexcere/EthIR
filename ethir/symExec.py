@@ -795,9 +795,6 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
     analysis = params.analysis
     calls = params.calls
     param_abs = ("","")
-
-    if block == 1731:
-        print "JIJI"
     
     print("Bloque: ")
     print(block)
@@ -883,7 +880,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
         falls = vertices[pre_block].get_falls_to()
         jump = vertices[pre_block].get_jump_target()
         invalid_block = 0
-
+        
         if jump != block and jump != None:
             ins = vertices[jump].get_instructions()
             invalid_block = jump
@@ -957,6 +954,8 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
         # AHC: If we find an already cloned block, we must check whether to copy it,
         # if leads to a possible non cloned path; or we can redirect to an existing one.
+        if successor == "1633_0":
+            print "aqui inc"
         if successor in visited_blocks:
             print("Successor already visited: ")
             print successor
@@ -971,55 +970,9 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
             print(stack)
             
             if len(same_stack_successors) > 0:
-                #If it's already cloned, we just have to update info
-                already_cloned_successor = same_stack_successors[0]
-                
-                # We have to add new origin to that block, not modify previous ones
-                vertices[already_cloned_successor].add_origin(block)
-                vertices[block].set_jump_target(already_cloned_successor,True)
-
-                
-                old_edges = filter(lambda x: x!= successor, edges[block])
-                old_edges.append(already_cloned_successor)
-                edges[block] = old_edges
-                
+                update_matching_successor(successor, same_stack_successors[0], block, "jump_target")
             else:
-                # We make a copy for the successor
-                new_successor = vertices[successor].copy()
-                
-                
-                # We obtain new index from block_cont and update the value
-                original_successor = get_initial_block_address(successor)
-                idx = block_cont.get(original_successor, 0)
-                block_cont[original_successor] = idx + 1
-                
-                # Once we know the index, we just add it to the base address from the succesor
-                # and update the start address from the copy
-                new_successor_address = str(get_initial_block_address(successor)) + "_" + str(idx)
-                new_successor.set_start_address(new_successor_address)
-
-                # We update info related to blocks: new successor comes from block,
-                # block jumps to new successor and we store new successor in vertices
-                new_successor.set_comes_from([block])
-                vertices[new_successor_address] = new_successor
-                vertices[block].set_jump_target(new_successor_address,True)
-                vertices[block].set_list_jump([new_successor_address])
-                
-                # This maps have already been initialized for each block,
-                # therefore we initilize them for new blocks, using info from successor (not neccesary)
-                stack_h[new_successor_address] = [float("inf"),float("inf")]
-                calldataload_values[new_successor_address] = calldataload_values[successor] 
-                edges[new_successor_address] = []
-                old_edges = filter(lambda x: x!= successor, edges[block])
-                old_edges.append(new_successor_address)
-                edges[block] = old_edges
-                    
-                jump_type[new_successor_address] = jump_type[successor]
-
-                # Finally, we keep on cloning
-                path.append((block, new_successor_address))
-                sym_exec_block(new_params, new_successor_address, block, depth, func_call,current_level+1,path)
-                path.pop()
+                copy_already_visited_node(successor, new_params, block, depth, func_call,current_level,path, "jump_target")
         
         elif successor in vertices:
             
@@ -1047,6 +1000,8 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
         # AHC: If we find an already cloned block, we must check whether to copy it,
         # if leads to a possible non cloned path; or we can redirect to an existing one.
+        if successor == "1633_0":
+            print "Aqui"
         if successor in visited_blocks:
 
             # We filter all nodes with same beginning, and check if there's one of those
@@ -1055,50 +1010,10 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
 
             if len(same_stack_successors) > 0:
-                #If it's already cloned, we just have to update info
-                already_cloned_successor = same_stack_successors[0]
-
-                vertices[already_cloned_successor].add_origin(block)
-                vertices[block].set_falls_to(already_cloned_successor)
-                old_edges = filter(lambda x: x!= successor, edges[block])
-                old_edges.append(already_cloned_successor)
-                edges[block] = old_edges
+                update_matching_successor(successor, same_stack_successors[0], block, "falls_to")
                 
             else:
-                # We make a copy for the successor
-                new_successor = vertices[successor].copy()
-
-                # We obtain new index from block_cont and update the value
-                original_successor = get_initial_block_address(successor)
-                idx = block_cont.get(original_successor, 0)
-                block_cont[original_successor] = idx + 1
-                
-                # Once we know the index, we just add it to the base address from the succesor
-                # and update the start address from the copy
-                new_successor_address = str(get_initial_block_address(successor)) + "_" + str(idx)
-                new_successor.set_start_address(new_successor_address)
-
-                # We update info related to blocks: new successor comes from block,
-                # block jumps to new successor and we store new successor in vertices
-                new_successor.set_comes_from([block])
-                vertices[new_successor_address] = new_successor
-                vertices[block].set_falls_to(new_successor_address)
-
-                
-                # This maps have already been initialized for each block,
-                # therefore we initilize them for new blocks, using info from successor (not neccesary)
-                stack_h[new_successor_address] = [float("inf"),float("inf")]
-                calldataload_values[new_successor_address] = calldataload_values[successor] 
-                edges[new_successor_address] = []
-                old_edges = filter(lambda x: x!= successor, edges[block])
-                old_edges.append(new_successor_address)
-                edges[block] = old_edges
-                jump_type[new_successor_address] = jump_type[successor]
-                
-                # Finally, we keep on cloning
-                path.append((block, new_successor_address))
-                sym_exec_block(new_params, new_successor_address, block, depth, func_call,current_level+1,path)
-                path.pop()
+                copy_already_visited_node(successor, new_params, block, depth, func_call,current_level,path, "falls_to")
 
         elif not(vertices[successor].known_stack(list(stack))):
             vertices[successor].add_origin(block) #to compute which are the blocks that leads to successor
@@ -1132,54 +1047,11 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
             # We filter all nodes with same beginning, and check if there's one of those
             # nodes with same stack. Notice that one block may contain several stacks
             same_stack_successors = get_all_blocks_with_same_stack(left_branch, stack)
-            
             if len(same_stack_successors) > 0:
-                #If it's already cloned, we just have to update info
-                already_cloned_successor = same_stack_successors[0]
-
-                vertices[already_cloned_successor].add_origin(block)
-                vertices[block].set_jump_target(already_cloned_successor,True)
-                old_edges = filter(lambda x: x!= left_branch, edges[block])
-                old_edges.append(already_cloned_successor)
-                edges[block] = old_edges
+                update_matching_successor(left_branch, same_stack_successors[0], block, "jump_target")
                 
             else:
-                # We make a copy for the successor
-                new_successor = vertices[left_branch].copy()
-
-                # We obtain new index from block_cont and update the value
-                original_left_branch = get_initial_block_address(left_branch)
-                idx = block_cont.get(original_left_branch, 0)
-                block_cont[original_left_branch] = idx + 1
-
-                # Once we know the index, we just add it to the base address from the succesor
-                # and update the start address from the copy
-                new_successor_address = str(get_initial_block_address(left_branch)) + "_" + str(idx)
-                new_successor.set_start_address(new_successor_address)
-
-                # We update info related to blocks: new successor comes from block,
-                # block jumps to new successor and we store new successor in vertices
-                new_successor.set_comes_from([block])
-                vertices[new_successor_address] = new_successor
-                vertices[block].set_jump_target(new_successor_address,True)
-                vertices[block].set_list_jump([new_successor_address])
-
-                
-                # This maps have already been initialized for each block,
-                # therefore we initilize them for new blocks, using info from successor (not neccesary)
-                stack_h[new_successor_address] = [float("inf"),float("inf")]
-                calldataload_values[new_successor_address] = calldataload_values[left_branch] 
-                edges[new_successor_address] = []
-                old_edges = filter(lambda x: x!= left_branch, edges[block])
-                old_edges.append(new_successor_address)
-                edges[block] = old_edges
-                jump_type[new_successor_address] = jump_type[left_branch]
-                
-                # Finally, we keep on cloning
-                path.append((block, new_successor_address))
-                sym_exec_block(new_params, new_successor_address, block, depth, func_call,current_level+1,path)
-                path.pop()
-
+                copy_already_visited_node(left_branch, new_params, block, depth, func_call,current_level,path, "jump_target")
                 
         elif left_branch in vertices:
             vertices[left_branch].add_origin(block) #to compute which are the blocks that leads to successor
@@ -1237,6 +1109,8 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
         # print "\n"
         # AHC: If we find an already cloned block, we must check whether to copy it,
         # if leads to a possible non cloned path; or we can redirect to an existing one.
+        if right_branch == "1633_0":
+            print "Derecha"
         if right_branch in visited_blocks:
 
             # We filter all nodes with same beginning, and check if there's one of those
@@ -1244,68 +1118,13 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
             same_stack_successors = get_all_blocks_with_same_stack(right_branch, stack)
             
             if len(same_stack_successors) > 0:
-                #If it's already cloned, we just have to update info
-                already_cloned_successor = same_stack_successors[0]
-
-                vertices[already_cloned_successor].add_origin(block)
-                vertices[block].set_falls_to(already_cloned_successor)
-                old_edges = filter(lambda x: x!= right_branch, edges[block])
-                old_edges.append(already_cloned_successor)
-                edges[block] = old_edges
-
-                
+                update_matching_successor(right_branch, same_stack_successors[0], block, "falls_to")
             else:
-                # We make a copy for the successor
-                new_successor = vertices[right_branch].copy()
-
-                # We obtain new index from block_cont and update the value
-                original_right_branch = get_initial_block_address(right_branch)
-                idx = block_cont.get(original_right_branch, 0)
-                block_cont[original_right_branch] = idx + 1
-
-                # Once we know the index, we just add it to the base address from the succesor
-                # and update the start address from the copy
-                new_successor_address = str(get_initial_block_address(right_branch)) + "_" + str(idx)
-                new_successor.set_start_address(new_successor_address)
-
-                # We update info related to blocks: new successor comes from block,
-                # block jumps to new successor and we store new successor in vertices
-                new_successor.set_comes_from([block])
-                vertices[new_successor_address] = new_successor
-                print "ADDR: "+str(new_successor_address)
-                vertices[block].set_falls_to(new_successor_address)
-
+                copy_already_visited_node(right_branch, new_params, block, depth, func_call,current_level,path, "falls_to")
                 
-                # This maps have already been initialized for each block,
-                # therefore we initilize them for new blocks, using info from successor (not neccesary)
-                stack_h[new_successor_address] = [float("inf"),float("inf")]
-                calldataload_values[new_successor_address] = calldataload_values[right_branch] 
-                edges[new_successor_address] = []
-                print block
-                print edges[block]
-                old_edges = filter(lambda x: x!= right_branch, edges[block])
-                old_edges.append(new_successor_address)
-                edges[block] = old_edges
-                jump_type[new_successor_address] = jump_type[right_branch]
-
-                
-                # Finally, we keep on cloning
-                path.append((block, new_successor_address))
-                sym_exec_block(new_params, new_successor_address, block, depth, func_call,current_level+1,path)
-                path.pop()
-
-        
         elif right_branch in vertices:
             vertices[right_branch].add_origin(block)
-            # if ((block,right_branch) not in path):
-            #     if potential_jump:
-            #         potential_jump = False
-            #     path.append((block,right_branch))
-            #     sym_exec_block(new_params, right_branch, block, depth, func_call,level+1,path)
-            #     path.pop()
-            # else:
-            #     # if not potential_jump:
-            #     #     potential_jump = True
+            
             if not(vertices[right_branch].known_stack(list(stack))):
                 path.append((block,right_branch))
                 sym_exec_block(new_params, right_branch, block, depth, func_call,current_level+1,path)
@@ -1342,24 +1161,94 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 # and has the same stack (it's supposed to be at most one)
 def get_all_blocks_with_same_stack(successor, stack):
     global vertices
-    
+
+    # We just search for those nodes that share initial name with our successor
     all_successor_copies = filter(lambda x: get_initial_block_address(x) == get_initial_block_address(successor), vertices)
     same_stack_successors = []
     
     for found_successor in all_successor_copies:
         list_stacks = vertices[found_successor].get_stacks()
+
+        # If there's no stack in the node, we must check if our stack is empty, or doesn't contain jump values info.
         if list_stacks == [[]]:
             if filter(lambda x: isinstance(x,tuple) and (x[0] in vertices) and x[0]!=0,stack) == []:
                 same_stack_successors.append(found_successor)
         else:
+            # Otherwise, we check every path to see if they're esentially the same
             for found_stack in list_stacks:
                 if check_if_same_stack(found_stack,stack,vertices):
                     same_stack_successors.append(found_successor)
                     break
     return same_stack_successors
 
-
+# Given a block, its successor, and another successor already visited that shares same stack,
+# updates info from matching successor and block, to preserve info without cloning.
+def update_matching_successor(successor, matching_successor, block, t):
+    global vertices
+    global edges
     
+    #If it's already cloned, we just have to update info
+    vertices[matching_successor].add_origin(block)
+    if t == "falls_to":
+        vertices[block].set_falls_to(matching_successor)
+    else:
+        vertices[block].set_jump_target(matching_successor, True)
+        
+    old_edges = filter(lambda x: x!= successor, edges[block])
+    old_edges.append(matching_successor)
+    edges[block] = old_edges
+    
+# Copies an already visited node, as there's no other node with same initial name with the same stack
+def copy_already_visited_node(successor, new_params, block, depth, func_call,current_level,path, t):
+    global vertices
+    global block_cont
+    global stack_h
+    global calldataload_values
+    global edges
+    global jump_type
+    
+    # We make a copy for the successor
+    new_successor = vertices[successor].copy()
+
+    # We obtain new index from block_cont and update the value
+    original_successor = get_initial_block_address(successor)
+    idx = block_cont.get(original_successor, 0)
+    block_cont[original_successor] = idx + 1
+
+    # Once we know the index, we just add it to the base address from the succesor
+    # and update the start address from the copy
+    new_successor_address = str(get_initial_block_address(successor)) + "_" + str(idx)
+    new_successor.set_start_address(new_successor_address)
+
+    # We update info related to blocks: new successor comes from block,
+    # block jumps to new successor and we store new successor in vertices
+    new_successor.set_comes_from([block])
+    vertices[new_successor_address] = new_successor
+    if t == "falls_to":
+        vertices[block].set_falls_to(new_successor_address)
+    else:
+        vertices[block].set_jump_target(new_successor_address, True)
+        
+    # This maps have already been initialized for each block,
+    # therefore we initilize them for new blocks, using info from successor (not neccesary)
+    stack_h[new_successor_address] = [float("inf"),float("inf")]
+    calldataload_values[new_successor_address] = calldataload_values[successor]
+
+    # Edges must be initialized to None, as it doesn't share the same list as the original node
+    edges[new_successor_address] = []
+    old_edges = filter(lambda x: x!= successor, edges[block])
+    old_edges.append(new_successor_address)
+    edges[block] = old_edges
+    
+    jump_type[new_successor_address] = jump_type[successor]
+                
+    # Finally, we keep on cloning
+    path.append((block, new_successor_address))
+    print "LLegue aqui con" + str(new_successor_address)
+    print block
+    sym_exec_block(new_params, new_successor_address, block, depth, func_call,current_level+1,path)
+    path.pop()
+
 # Symbolically executing an instruction
 def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
     global MSIZE
