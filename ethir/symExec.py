@@ -24,7 +24,7 @@ import global_params
 
 import rbr
 from clone import compute_cloning
-from utils import cfg_dot, write_cfg, update_map, get_public_fields, getLevel, get_push_value, get_initial_block_address
+from utils import cfg_dot, write_cfg, update_map, get_public_fields, getLevel, get_push_value, get_initial_block_address, check_graph_consistency
 from opcodes import get_opcode
 from graph_scc import Graph_SCC, get_entry_all,filter_nested_scc
 from pattern import look_for_string_pattern,check_sload_fragment_pattern,sstore_fragment
@@ -324,7 +324,9 @@ def build_cfg_and_analyze(evm_version):
     delete_uncalled()
     update_block_info()
     build_push_jump_relations()
-    
+
+    print "Consistente"
+    print check_graph_consistency(vertices)
 
 
 #Added by Pablo Gordillo

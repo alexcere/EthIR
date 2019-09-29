@@ -686,7 +686,7 @@ def check_node_consistency(blocks_dict, initial_address, comes_from_address, vis
             conds.append(check_node_consistency(blocks_dict,falls_to, initial_address,visited_nodes))
             conds.append(check_node_consistency(blocks_dict,jumps_to, initial_address,visited_nodes))
 
-            print("conditional check")
+            # print("conditional check")
 
        # Unconditional jump : check length of jump list + comes_from + 
        # jumps target is the element of jump list + jump target node +
@@ -699,10 +699,10 @@ def check_node_consistency(blocks_dict, initial_address, comes_from_address, vis
             conds.append(jumps_to in jump_list)
             conds.append(check_node_consistency(blocks_dict,jumps_to, initial_address, visited_nodes))
             conds.append(falls_to == None)
-            print("Falls_to")
-            print(falls_to)
+            # print("Falls_to")
+            # print(falls_to)
 
-            print("unconditional check")
+            # print("unconditional check")
         
         # Falls to node: check comes_from + next_node + jumps_to == None
         elif t == "falls_to":
@@ -710,23 +710,25 @@ def check_node_consistency(blocks_dict, initial_address, comes_from_address, vis
             conds.append(check_node_consistency(blocks_dict, falls_to, initial_address, visited_nodes))
             conds.append(jumps_to == 0)
 
-            print("Jumps to")
-            print(jumps_to)
+            # print("Jumps to")
+            # print(jumps_to)
 
-            print("falls to check")
+            # print("falls to check")
             
         # Terminal node: only check comes_from
 
         else:
-            print("terminal node to check")
+            pass
+            # print("terminal node to check")
         
     # If visited, as we've checked that node before, we just need to make sure
     # comes_from has current node.
 
     else:
-        print("already checked")
-    print(initial_address)
-    print(conds)
+        # print("already checked")
+        pass
+    # print(initial_address)
+    # print(conds)
     return reduce(lambda i,j: i and j, conds)
 
 ''' Given a dictionary containing all blocks from graph, checks if all the info
@@ -749,7 +751,7 @@ def check_graph_consistency(blocks_dict, initial_address = 0):
          conds.append(check_node_consistency(blocks_dict,falls_to, initial_address,visited_nodes))
          conds.append(check_node_consistency(blocks_dict,jumps_to, initial_address,visited_nodes))
          
-         print("initial node: conditional")
+         # print("initial node: conditional")
          
     # Unconditional jump : check length of jump list && comes_from && 
     # jumps target is the element of jump list && jump target node &&
@@ -763,7 +765,7 @@ def check_graph_consistency(blocks_dict, initial_address = 0):
          conds.append(check_node_consistency(blocks_dict,jumps_to, initial_address, visited_nodes))
          conds.append(falls_to == None)
 
-         print("initial node: unconditional")
+         # print("initial node: unconditional")
          
     # Falls to node: visited nodes == blocks_dict.keys && check  next_node  && jumps_to == None
     elif t == "falls_to":
@@ -771,12 +773,12 @@ def check_graph_consistency(blocks_dict, initial_address = 0):
          conds.append(check_node_consistency(blocks_dict, falls_to, initial_address, visited_nodes))
          conds.append(jumps_to == 0)
          
-         print("initial node: falls to")
+         # print("initial node: falls to")
          
     # Terminal node: only check there's no other block
     else:
-         
-         print("initial Node: terminal node")
+         pass
+         # print("initial Node: terminal node")
 
     # Check all visited nodes are the same in the dictionary
     conds.append(visited_nodes.sort() == blocks_dict.keys().sort())
