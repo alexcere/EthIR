@@ -519,8 +519,12 @@ def show_graph(blocks_input):
         print blocks_input[address].get_jump_target()
         print("Falls to: ")
         print blocks_input[address].get_falls_to()
-        print("Stacks: ")
+        print("Filtered Stack: ")
+        for stack in blocks_input[address].get_stacks():
+            print filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_input) and x[0]!=0, stack)
+        print("Real stack:")
         print blocks_input[address].get_stacks()
+        
 
 ''' Given a node and where it comes from, checks all relevant info is consistent'''
 def check_node_consistency(blocks_dict, initial_address, comes_from_address, visited_nodes):

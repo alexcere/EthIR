@@ -320,13 +320,15 @@ def build_cfg_and_analyze(evm_version):
     #     p = vertices[e].get_paths()
     #     if len(p) > 1:
     #         print p
+    
     show_graph(vertices)
     delete_uncalled()
     update_block_info()
     build_push_jump_relations()
 
-    print "Consistente"
-    print check_graph_consistency(vertices)
+    if debug_info:
+        print "Consistente"
+        print check_graph_consistency(vertices)
 
 
 #Added by Pablo Gordillo
@@ -797,11 +799,12 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
     analysis = params.analysis
     calls = params.calls
     param_abs = ("","")
-    
-    print("Bloque: ")
-    print(block)
-    print("Pila antes de ejecutar:")
-    print(stack)
+
+    if debug_info:
+        print("Block: ")
+        print(block)
+        print("Stack before executing:")
+        print(stack)
     
     vertices[block].add_stack(list(stack))
     if debug_info:
@@ -956,20 +959,17 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
         # AHC: If we find an already cloned block, we must check whether to copy it,
         # if leads to a possible non cloned path; or we can redirect to an existing one.
-        if successor == "1633_0":
-            print "aqui inc"
         if successor in visited_blocks:
-            print("Successor already visited: ")
-            print successor
-            print("From unconditional block: ")
-            print block
+            if debug_info:
+                print("Successor already visited: ")
+                print successor
+                print("From unconditional block: ")
+                print block
             
             # We filter all nodes with same beginning, and check if there's one of those
             # nodes with same stack. Notice that one block may contain several stacks
                 
             same_stack_successors = get_all_blocks_with_same_stack(successor, stack)
-
-            print(stack)
             
             if len(same_stack_successors) > 0:
                 update_matching_successor(successor, same_stack_successors[0], block, "jump_target")
@@ -1002,8 +1002,6 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
         # AHC: If we find an already cloned block, we must check whether to copy it,
         # if leads to a possible non cloned path; or we can redirect to an existing one.
-        if successor == "1633_0":
-            print "Aqui"
         if successor in visited_blocks:
 
             # We filter all nodes with same beginning, and check if there's one of those
@@ -1111,8 +1109,6 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
         # print "\n"
         # AHC: If we find an already cloned block, we must check whether to copy it,
         # if leads to a possible non cloned path; or we can redirect to an existing one.
-        if right_branch == "1633_0":
-            print "Derecha"
         if right_branch in visited_blocks:
 
             # We filter all nodes with same beginning, and check if there's one of those
