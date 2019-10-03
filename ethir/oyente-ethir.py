@@ -272,7 +272,7 @@ def analyze_solidity(input_type='solidity'):
 
     x = dtimer()
     is_runtime = not(args.init)
-    print is_runtime
+    # print is_runtime
     if input_type == 'solidity':
         helper = InputHelper(InputHelper.SOLIDITY, source=args.source,evm=args.evm,runtime=is_runtime)
     elif input_type == 'standard_json':
