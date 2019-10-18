@@ -654,3 +654,27 @@ def check_graph_consistency(blocks_dict, initial_address = 0):
     # print(conds)
     
     return reduce(lambda i,j: i and j, conds)
+
+# Given a string, returns closing parentheses index that closes first parenthese,
+# assuming parentheses are well-placed.
+def find_first_closing_parentheses(string):
+    idx_ini = string.find("(") + 1
+    filtered_string = string[idx_ini:]
+    cont = 1
+    while cont > 0:
+        opening_index = filtered_string.find("(")
+        closing_index = filtered_string.find(")")
+        if opening_index == -1:
+            return idx_ini + closing_index
+        elif opening_index < closing_index:
+            cont = cont+1
+            idx_ini = idx_ini + opening_index + 1
+            filtered_string = filtered_string[opening_index+1:]
+        else:
+            cont = cont-1
+            if cont == 0:
+                return idx_ini + closing_index
+            else:
+                idx_ini = idx_ini + closing_index + 1
+                filtered_string = filtered_string[closing_index+1:]
+    raise ValueError("Parentheses are not consistent")

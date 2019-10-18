@@ -24,7 +24,7 @@ import global_params
 
 import rbr
 from clone import compute_cloning
-from utils import cfg_dot, write_cfg, update_map, get_public_fields, getLevel, get_push_value, get_initial_block_address, check_graph_consistency
+from utils import cfg_dot, write_cfg, update_map, get_public_fields, getLevel, get_push_value, get_initial_block_address, check_graph_consistency, find_first_closing_parentheses
 from opcodes import get_opcode
 from graph_scc import Graph_SCC, get_entry_all,filter_nested_scc
 from pattern import look_for_string_pattern,check_sload_fragment_pattern,sstore_fragment
@@ -1875,11 +1875,13 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
                 second = to_symbolic(second)
                 # solver.push()
                 # solver.add( Not (Or( first >= 32, first < 0 ) ) )
-                if byte_index < 0:
+                # print byte_index
+                if isReal(byte_index) and byte_index < 0:
                     computed = 0
                 else:
                     computed = second & (255 << (8 * byte_index))
                     computed = computed >> (8 * byte_index)
+                    print computed
                 #solver.pop()
             #computed = simplify(computed) if is_expr(computed) else computed
             stack.insert(0, computed)
@@ -1968,9 +1970,9 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
             if g_src_map:
                 source_code = g_src_map.get_source_code(global_state['pc'] - 1)
                 if source_code.startswith("function") and isReal(position):
-                    #Delete commment blocks
-                    # print("Source code: ")
-                    # print(source_code)
+                    # Delete commment blocks
+                    print("Source code: ")
+                    print(source_code)
                     idx1_cb = source_code.find("/*")
                     idx2_cb = source_code.find("*/")
                     
@@ -1990,11 +1992,13 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
                                 params.append(e)
                         source_code = "\n".join(params)
 
-                    # print("Source code without comments")
-                    # print(source_code)
+                    print("Source code without comments")
+                    print(source_code)
+
                     
                     idx1 = source_code.index("(") + 1
-                    idx2 = source_code.index(")")
+                    idx2 = find_first_closing_parentheses(source_code)
+                    
                     params = source_code[idx1:idx2]
 
                     # print("Args")
@@ -2007,14 +2011,37 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
                         params_list_aux+= filter(lambda x: (not x.strip().startswith("//")) and x != "",comments)
 
                     params_list_aux = filter(lambda x: x.strip() != "",params_list_aux)
-                  
+                    print("Params list aux")
+                    print params_list_aux
+                    
                     params_list = [param.split("//")[0].rstrip().rstrip("\n").split(" ")[-1] for param in params_list_aux]
 
-                    # print("Param list")
-                    # print params_list
+                    params_type = [param.split("//")[0].rstrip().rstrip("\n").split(" ")[0] for param in params_list_aux]
+
+                    replicated_params_list = []
+                    for param_name, param_type in zip(params_list,params_type):
+                        # Means current param is an array
+                        if param_type.find("[") != -1:
+                            number_init = param_type.find("[") + 1
+                            number_end = param_type.find("]")
+                            # If both numbers are the same, then argument forma is type[], so we just add the name.
+                            if number_init == number_end:
+                                replicated_params_list.append(param_name)
+                            else:
+                                number = int(param_type[number_init:number_end])
+                                for i in range(number):
+                                    replicated_params_list.append(param_name + "[" +  str(i) + "]")
+                        else:
+                            replicated_params_list.append(param_name)
+                    print("Duplicated params list")
+                    print(replicated_params_list)
+                            
                     
                     param_idx = (position - 4) // 32
-                    new_var_name = params_list[param_idx]
+
+                    print("Param idx")
+                    print param_idx
+                    new_var_name = replicated_params_list[param_idx]
                     g_src_map.var_names.append(new_var_name)
                     param_abs = (block,new_var_name)
                 else:
