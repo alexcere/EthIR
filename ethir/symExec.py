@@ -1542,7 +1542,7 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
                 second = to_symbolic(second)
                 # solver.push()
                 # solver.add( Not(third == 0) )
-                if third == unsat:
+                if isReal(third) and third == unsat:
                     computed = 0
                 else:
                     # first = ZeroExt(256, first)
@@ -1881,7 +1881,6 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
                 else:
                     computed = second & (255 << (8 * byte_index))
                     computed = computed >> (8 * byte_index)
-                    print computed
                 #solver.pop()
             #computed = simplify(computed) if is_expr(computed) else computed
             stack.insert(0, computed)
@@ -1971,8 +1970,8 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
                 source_code = g_src_map.get_source_code(global_state['pc'] - 1)
                 if source_code.startswith("function") and isReal(position):
                     # Delete commment blocks
-                    print("Source code: ")
-                    print(source_code)
+                    # print("Source code: ")
+                    # print(source_code)
                     idx1_cb = source_code.find("/*")
                     idx2_cb = source_code.find("*/")
                     
@@ -1992,8 +1991,8 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
                                 params.append(e)
                         source_code = "\n".join(params)
 
-                    print("Source code without comments")
-                    print(source_code)
+                    # print("Source code without comments")
+                    # print(source_code)
 
                     
                     idx1 = source_code.index("(") + 1
@@ -2011,8 +2010,8 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
                         params_list_aux+= filter(lambda x: (not x.strip().startswith("//")) and x != "",comments)
 
                     params_list_aux = filter(lambda x: x.strip() != "",params_list_aux)
-                    print("Params list aux")
-                    print params_list_aux
+                    # print("Params list aux")
+                    # print params_list_aux
                     
                     params_list = [param.split("//")[0].rstrip().rstrip("\n").split(" ")[-1] for param in params_list_aux]
 
@@ -2033,14 +2032,14 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
                                     replicated_params_list.append(param_name + "[" +  str(i) + "]")
                         else:
                             replicated_params_list.append(param_name)
-                    print("Duplicated params list")
-                    print(replicated_params_list)
+                    # print("Duplicated params list")
+                    # print(replicated_params_list)
                             
                     
                     param_idx = (position - 4) // 32
 
-                    print("Param idx")
-                    print param_idx
+                    # print("Param idx")
+                    # print param_idx
                     new_var_name = replicated_params_list[param_idx]
                     g_src_map.var_names.append(new_var_name)
                     param_abs = (block,new_var_name)
@@ -2487,6 +2486,8 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
     elif opcode == "JUMP":
         if len(stack) > 0:
             push_address = stack.pop(0)
+            # print("Stack before Jumping")
+            # print stack
             target_address,push_block = push_address
 
             jump_addresses.append(target_address)

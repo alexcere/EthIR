@@ -14,6 +14,7 @@ import difflib
 import six
 #from z3 import *
 #from z3.z3util import get_vars
+from z3 import unknown
 
 from dot_tree import Tree, build_tree
 
