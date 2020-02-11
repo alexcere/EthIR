@@ -24,7 +24,7 @@ import global_params
 
 import rbr
 from clone import compute_cloning
-from utils import cfg_dot, write_cfg, update_map, get_public_fields, getLevel, get_push_value, get_initial_block_address, check_graph_consistency, find_first_closing_parentheses
+from utils import cfg_dot, write_cfg, update_map, get_public_fields, getLevel, get_push_value, get_initial_block_address, check_graph_consistency, find_first_closing_parentheses, check_if_same_stack
 from opcodes import get_opcode
 from graph_scc import Graph_SCC, get_entry_all,filter_nested_scc
 from pattern import look_for_string_pattern,check_sload_fragment_pattern,sstore_fragment
@@ -805,17 +805,15 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
     calls = params.calls
     param_abs = ("","")
 
-    if debug_info:
-        print("Block: ")
-        print(block)
-        print("Stack before executing:")
-        print(stack)
-    
     vertices[block].add_stack(list(stack))
+    vertices[block].add_path(path)
+    
     if debug_info:
         print ("\nBLOCK "+ str(block))
         print ("PATH")
         print (path)
+        print ("STACK")
+        print (stack)
 
     update_stack_heigh(block,len(stack),0)
     Edge = namedtuple("Edge", ["v1", "v2"]) # Factory Function for tuples is used as dictionary key
@@ -916,13 +914,10 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
         annotate_invalid(path)
 
     check_div_invalid_pattern(block,path)
-        
-    # Mark that this basic block in the visited blocks
-    visited.append(block)
+    
     depth += 1
 
     update_stack_heigh(block,len(stack),1)
-    vertices[block].add_path(path)
     
     if block == 0:
         s0 = vertices[block].get_block_gas()
@@ -953,6 +948,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
 
         total_no_of_paths += 1
 
+
     elif jump_type[block] == "unconditional":  # executing "JUMP"
         successor = vertices[block].get_jump_target()
         new_params = params.copy()
@@ -962,42 +958,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
             if source_code in g_src_map.func_call_names:
                 func_call = global_state['pc']
 
-        # AHC: If we find an already cloned block, we must check whether to copy it,
-        # if leads to a possible non cloned path; or we can redirect to an existing one.
-        if successor in visited_blocks:
-            if debug_info:
-                print("Successor already visited: ")
-                print successor
-                print("From unconditional block: ")
-                print block
-            
-            # We filter all nodes with same beginning, and check if there's one of those
-            # nodes with same stack. Notice that one block may contain several stacks
-                
-            same_stack_successors = get_all_blocks_with_same_stack(successor, stack)
-            
-            if len(same_stack_successors) > 0:
-                update_matching_successor(successor, same_stack_successors[0], block, "jump_target")
-            else:
-                copy_already_visited_node(successor, new_params, block, depth, func_call,current_level,path, "jump_target")
-        
-        elif successor in vertices:
-            
-            # Mirar si clonarlo o no TODO
-            vertices[successor].add_origin(block) #to compute which are the blocks that leads to successor
-
-            if not(vertices[successor].known_stack(list(stack))):
-                path.append((block,successor))
-                sym_exec_block(new_params, successor, block, depth, func_call,current_level+1,path)
-                path.pop()
-            # else:
-            #     if vertices[successor].get_depth_level()<(current_level+1): 
-            #         vertices[successor].set_depth_level(current_level+1)
-            #         update_depth_level(successor,current_level+1,[])
-                    
-        else:
-            if successor not in blocks_to_create:
-                blocks_to_create.append(successor)
+        analyze_next_block(block, successor, stack, path, func_call, depth, current_level, new_params, "jump_target")
                 
     elif jump_type[block] == "falls_to":  # just follow to the next basic block
         successor = vertices[block].get_falls_to()
@@ -1005,33 +966,8 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
         new_params = params.copy()
         new_params.global_state["pc"] = get_initial_block_address(successor)
 
-        # AHC: If we find an already cloned block, we must check whether to copy it,
-        # if leads to a possible non cloned path; or we can redirect to an existing one.
-        if successor in visited_blocks:
-
-            # We filter all nodes with same beginning, and check if there's one of those
-            # nodes with same stack. Notice that one block may contain several stacks
-            same_stack_successors = get_all_blocks_with_same_stack(successor, stack)
-
-
-            if len(same_stack_successors) > 0:
-                update_matching_successor(successor, same_stack_successors[0], block, "falls_to")
-                
-            else:
-                copy_already_visited_node(successor, new_params, block, depth, func_call,current_level,path, "falls_to")
-
-        elif not(vertices[successor].known_stack(list(stack))):
-            vertices[successor].add_origin(block) #to compute which are the blocks that leads to successor
-            path.append((block,successor))
-            
-            sym_exec_block(new_params, successor, block, depth, func_call,current_level+1,path)
-            path.pop()
-        else:
-            vertices[successor].add_origin(block) #to compute which are the blocks that leads to successor
-            # if vertices[successor].get_depth_level()<(current_level+1):
-            #     vertices[successor].set_depth_level(current_level+1)
-            #     update_depth_level(successor,current_level+1,[])
-
+        analyze_next_block(block, successor, stack, path, func_call, depth, current_level, new_params, "falls_to")
+        
     elif jump_type[block] == "conditional":  # executing "JUMPI"
 
         # A choice point, we proceed with depth first search
@@ -1045,47 +981,7 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
         last_idx = len(new_params.path_conditions_and_vars["path_condition"]) - 1
                 #new_params.analysis["time_dependency_bug"][last_idx] = global_state["pc"]
 
-        # AHC: If we find an already cloned block, we must check whether to copy it,
-        # if leads to a possible non cloned path; or we can redirect to an existing one.
-        if left_branch in visited_blocks:
-
-            # We filter all nodes with same beginning, and check if there's one of those
-            # nodes with same stack. Notice that one block may contain several stacks
-            same_stack_successors = get_all_blocks_with_same_stack(left_branch, stack)
-            if len(same_stack_successors) > 0:
-                update_matching_successor(left_branch, same_stack_successors[0], block, "jump_target")
-                
-            else:
-                copy_already_visited_node(left_branch, new_params, block, depth, func_call,current_level,path, "jump_target")
-                
-        elif left_branch in vertices:
-            vertices[left_branch].add_origin(block) #to compute which are the blocks that leads to successor
-            if not(vertices[left_branch].known_stack(list(stack))):
-            # if (((block,left_branch) not in path)):
-            #     if potential_jump:
-            #         potential_jump = False
-                path.append((block,left_branch))
-                sym_exec_block(new_params, left_branch, block, depth, func_call,current_level+1,path)
-                path.pop()
-            # else:
-            #     if vertices[left_branch].get_depth_level() < (current_level+1):
-            #         vertices[left_branch].set_depth_level(current_level+1)
-            #         update_depth_level(left_branch,current_level+1,[])
-                # else:
-            #     # if not potential_jump:
-            #     #     potential_jump = True
-            #     if not(vertices[left_branch].known_stack(list(stack))):
-            #         path.append((block,left_branch))
-            #         sym_exec_block(new_params, left_branch, block, depth, func_call,level+1,path)
-            #         path.pop()
-            #     # else:
-            #     #     print "PASO"
-            #     # else:
-            #     #     potential_jump = False
-        else:
-            if left_branch not in blocks_to_create:
-                blocks_to_create.append(left_branch)
-
+        analyze_next_block(block, left_branch, stack, path, func_call, depth, current_level, new_params, jump_type)
         # solver.pop()  # POP SOLVER CONTEXT
 
         # solver.push()  # SET A BOUNDARY FOR SOLVER
@@ -1112,42 +1008,9 @@ def sym_exec_block(params, block, pre_block, depth, func_call,level,path):
         # print right_branch
         # print path
         # print "\n"
-        # AHC: If we find an already cloned block, we must check whether to copy it,
-        # if leads to a possible non cloned path; or we can redirect to an existing one.
-        if right_branch in visited_blocks:
-
-            # We filter all nodes with same beginning, and check if there's one of those
-            # nodes with same stack. Notice that one block may contain several stacks
-            same_stack_successors = get_all_blocks_with_same_stack(right_branch, stack)
-            
-            if len(same_stack_successors) > 0:
-                update_matching_successor(right_branch, same_stack_successors[0], block, "falls_to")
-            else:
-                copy_already_visited_node(right_branch, new_params, block, depth, func_call,current_level,path, "falls_to")
-                
-        elif right_branch in vertices:
-            vertices[right_branch].add_origin(block)
-            
-            if not(vertices[right_branch].known_stack(list(stack))):
-                path.append((block,right_branch))
-                sym_exec_block(new_params, right_branch, block, depth, func_call,current_level+1,path)
-                path.pop()
-                # else:
-                #     print "PASO"
-                # else:
-                #     potential_jump = False
-            # else:
-            #     if vertices[right_branch].get_depth_level < (current_level+1):
-            #         vertices[right_branch].set_depth_level(current_level+1)
-            #         update_depth_level(right_branch,current_level+1,[])
-        else:
-            if right_branch not in blocks_to_create:
-                blocks_to_create.append(right_branch)
-        # except TimeoutError:
-        #     raise
-        # except Exception as e:
-        #     if global_params.DEBUG_MODE:
-        #         traceback.print_exc()
+        
+        analyze_next_block(block, right_branch, stack, path, func_call, depth, current_level, new_params, "falls_to")
+        
         # solver.pop()  # POP SOLVER CONTEXT
         updated_count_number = visited_edges[current_edge] - 1
         visited_edges.update({current_edge: updated_count_number})
@@ -1179,6 +1042,7 @@ def get_all_blocks_with_same_stack(successor, stack):
         else:
             # Otherwise, we check every path to see if they're esentially the same
             for found_stack in list_stacks:
+
                 if check_if_same_stack(found_stack,stack,vertices):
                     same_stack_successors.append(found_successor)
                     break
@@ -1251,6 +1115,7 @@ def copy_already_visited_node(successor, new_params, block, depth, func_call,cur
     if debug_info:
         print "LLegue aqui con" + str(new_successor_address)
         print block
+        
     sym_exec_block(new_params, new_successor_address, block, depth, func_call,current_level+1,path)
     path.pop()
 
@@ -2858,6 +2723,41 @@ def sym_exec_ins(params, block, instr, func_call,stack_first,instr_index):
 #             update_depth_level(falls,level+1,updated)
 #         # if jump == 0 and falls == None:
 #         #     print "TERMINAL"
+
+
+def analyze_next_block(block, successor, stack, path, func_call, depth, current_level, new_params, jump_type):
+    global visited_blocks
+    global vertices
+    global blocks_to_create
+    
+    if successor in visited_blocks:
+        # We filter all nodes with same beginning, and check if there's one of those
+        # nodes with same stack. Notice that one block may contain several stacks
+        
+        same_stack_successors = get_all_blocks_with_same_stack(successor, stack)
+            
+        if len(same_stack_successors) > 0:
+            update_matching_successor(successor, same_stack_successors[0], block, jump_type)
+        else:
+            copy_already_visited_node(successor, new_params, block, depth, func_call,current_level,path, jump_type)
+        
+    elif successor in vertices:
+            
+        vertices[successor].add_origin(block) #to compute which are the blocks that leads to successor
+
+        path.append((block,successor))
+        sym_exec_block(new_params, successor, block, depth, func_call,current_level+1,path)
+        path.pop()
+            # else:
+            #     if vertices[successor].get_depth_level()<(current_level+1): 
+            #         vertices[successor].set_depth_level(current_level+1)
+            #         update_depth_level(successor,current_level+1,[])
+                    
+    else:
+        if successor not in blocks_to_create:
+            blocks_to_create.append(successor)
+        
+
 
     
 

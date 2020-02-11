@@ -407,6 +407,7 @@ def write_cfg(it,vertices,name = False,cloned = False):
             f.write("start address: "+ str(block.get_start_address())+"\n")
             f.write("end address: "+str(block.get_end_address())+"\n")
             f.write("end statement type: " + block.get_block_type()+"\n")
+            f.write("stack: " + str(block.get_stacks()) + "\n")
 
             f.write("jump target: " + " ".join(str(x) for x in block.get_list_jumps())+"\n")
             if(block.get_falls_to() != None):
@@ -502,11 +503,9 @@ def get_idx_from_address(address):
 def check_if_same_stack(stack1, stack2, blocks_info):
     s1_aux = filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info) and x[0]!=0,stack1)
     s2_aux = filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info) and x[0]!=0,stack2)
-    # print "S1"
-    # print s1_aux
-    # print "S2"
-    # print s2_aux
-    return s1_aux == s2_aux
+    s1_dir = [get_initial_block_address(x[0]) for x in s1_aux]
+    s2_dir = [get_initial_block_address(x[0]) for x in s2_aux]
+    return (s1_dir == s2_dir and len(stack1) == len(stack2))
 
 def show_graph(blocks_input):
     for address in blocks_input:
