@@ -74,7 +74,9 @@ address.
 def clone_path(blocks_dict, final_address, push_address, block_address, first_copy, globally_cloned, index_dict):
     global cloned_blocks
     global stack_index
+    
     global last_block_idx_dict
+
     
     stack_in = stack_index[push_address][1]
     #print "EMPIEZA"
@@ -129,6 +131,7 @@ def clone_path(blocks_dict, final_address, push_address, block_address, first_co
         initial_jumps_to = push_block_obj.get_jump_target()
 
         # print initial_jumps_to
+
 
         initial_falls_to = push_block_obj.get_falls_to()
 
@@ -219,10 +222,6 @@ def clone(block, blocks_input, globally_cloned, index_dict):
         a = address[i]
         print "ESTO ES LO QUE CALCULA"
         print a
-        # print in_blocks
-        # print "CLONANDO"
-        # print uncond_block
-        # print b
 
         #Cogemos el bloque que ha hecho push a la direccion
         push_addresses = address_dict[a]
@@ -274,6 +273,13 @@ def clone_block(block_address, end_address, blocks_input, idx_dict, stack_in, gl
         print "NEW START ADDRESS HERE"
         print new_start_address
         
+        else:
+            new_start_address = block_idx
+            idx_dict[get_initial_block_address(old_start_address)] += 1
+
+        print "NEW START ADDRESS HERE"
+        print new_start_address
+            
         block_dup.set_start_address(new_start_address)
         stack_index[block_dup.get_start_address()] = [stack_in,stack_out]
         
@@ -302,6 +308,9 @@ def clone_block(block_address, end_address, blocks_input, idx_dict, stack_in, gl
         #locally_cloned only keeps the current execution path that leads to clone things
         # locally_cloned.pop()
 
+        #locally_cloned only keeps the current execution path that leads to clone things
+        locally_cloned.pop()
+        
         #block_dup.display()
        # block_dup.display()
         if block_address not in globally_cloned:
@@ -335,6 +344,7 @@ def update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_addres
             new_jumps_to = find_next_node_address_already_cloned(path_to_clone, path_to_clone_idx, current_block_idx, jumps_to)
             block_dup.set_jump_target(new_jumps_to, True)
             block_dup.set_list_jump([new_jumps_to])
+
 
             blocks_input[new_jumps_to].add_origin(pred_new)
 
@@ -375,8 +385,11 @@ def update_falls_to(block_dup, falls_to, idx_dict, locally_cloned, end_address, 
 
     # main path: we keep on cloning, even though we may
     # repit a node already cloned
+
     if path_idx != -1:
         new_falls_to = get_next_block_address(falls_to, idx_dict)
+        print "MAIN PATH"
+        print new_falls_to
         block_dup.set_falls_to(new_falls_to)
 
         path_to_clone_idx[path_idx] = get_idx_from_address(new_falls_to)
@@ -420,6 +433,7 @@ def find_next_node_address_already_cloned(path_to_clone, path_to_clone_idx, curr
 def clone_child(block_dup,jumps_to,falls_to,idx_dict,end_address,blocks_input,stack_out,globally_cloned,locally_cloned,path_to_clone, path_idx, path_to_clone_idx, current_block_idx):
     t =  block_dup.get_block_type()
     pred_new = block_dup.get_start_address()
+    
     if t == "conditional":
         if path_idx == -1:
             update_jump_target(block_dup, jumps_to, idx_dict, locally_cloned, end_address, blocks_input, stack_out, globally_cloned, pred_new, path_to_clone, -1, path_to_clone_idx, current_block_idx)
@@ -891,5 +905,3 @@ def obtain_standard_representation(path, blocks_dict):
         if (t == "unconditional") and (len(list_jumps) > 1):
             new_representation.append(address)
     return new_representation
-
-    
