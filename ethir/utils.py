@@ -14,6 +14,7 @@ import difflib
 import six
 #from z3 import *
 #from z3.z3util import get_vars
+from z3 import unknown
 
 from dot_tree import Tree, build_tree
 
@@ -406,6 +407,7 @@ def write_cfg(it,vertices,name = False,cloned = False):
             f.write("start address: "+ str(block.get_start_address())+"\n")
             f.write("end address: "+str(block.get_end_address())+"\n")
             f.write("end statement type: " + block.get_block_type()+"\n")
+            f.write("stack: " + str(block.get_stacks()) + "\n")
 
             f.write("jump target: " + " ".join(str(x) for x in block.get_list_jumps())+"\n")
             if(block.get_falls_to() != None):
@@ -471,6 +473,8 @@ def get_push_value(elem):
     except:
         return elem
 
+# Added by AHC
+
 def get_initial_block_address(elem):
     numbers = str(elem).split("_")
     return int(numbers[0])
@@ -478,8 +482,199 @@ def get_initial_block_address(elem):
 def get_next_block_address(elem, index_dict):
     numbers = str(elem).split("_")
     idx = str(index_dict[int(numbers[0])])
+
     if len(numbers) == 1:
         numbers.append(idx)
     else:
         numbers[1] = idx
     return "_".join(numbers)
+
+def check_if_not_cloned_address(elem):
+    numbers = str(elem).split("_")
+    return len(numbers) == 1
+
+def get_idx_from_address(address):
+    parts = address.split("_")
+    idx = parts[1]
+    return int(idx)
+
+# For checking if they are same stack, we just focus on
+# tuples that contains a block address
+def check_if_same_stack(stack1, stack2, blocks_info):
+    s1_aux = filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info) and x[0]!=0,stack1)
+    s2_aux = filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_info) and x[0]!=0,stack2)
+    s1_dir = [get_initial_block_address(x[0]) for x in s1_aux]
+    s2_dir = [get_initial_block_address(x[0]) for x in s2_aux]
+    return (s1_dir == s2_dir and len(stack1) == len(stack2))
+
+def show_graph(blocks_input):
+    for address in blocks_input:
+        print("Bloque: ")
+        print address
+        print("Comes from: ")
+        print blocks_input[address].get_comes_from()
+        print("List jump: ")
+        print blocks_input[address].get_list_jumps()
+        print("Jump target: ")
+        print blocks_input[address].get_jump_target()
+        print("Falls to: ")
+        print blocks_input[address].get_falls_to()
+        print("Filtered Stack: ")
+        for stack in blocks_input[address].get_stacks():
+            print filter(lambda x: isinstance(x,tuple) and (x[0] in blocks_input) and x[0]!=0, stack)
+        print("Real stack:")
+        print blocks_input[address].get_stacks()
+        
+
+''' Given a node and where it comes from, checks all relevant info is consistent'''
+def check_node_consistency(blocks_dict, initial_address, comes_from_address, visited_nodes):
+    
+    current_block = blocks_dict[initial_address]
+
+    comes_from = current_block.get_comes_from()
+
+    # List containing all the values checked
+    conds = []
+    
+    # Always same condition: check if previous block is in comes_from list
+    conds.append(comes_from_address in comes_from)
+    
+    if initial_address not in visited_nodes:
+        
+        t = current_block.get_block_type()
+
+        jumps_to = current_block.get_jump_target()
+        falls_to = current_block.get_falls_to()
+
+        visited_nodes.append(initial_address)
+
+        # Conditional jump: check comes_from + falls to node + jump target node
+        if t == "conditional":
+
+            conds.append(check_node_consistency(blocks_dict,falls_to, initial_address,visited_nodes))
+            conds.append(check_node_consistency(blocks_dict,jumps_to, initial_address,visited_nodes))
+
+            # print("conditional check")
+
+       # Unconditional jump : check length of jump list + comes_from + 
+       # jumps target is the element of jump list + jump target node +
+       # falls_to == None
+        elif t == "unconditional":
+
+            jump_list = current_block.get_list_jumps()
+            
+            conds.append(len(jump_list) == 1)
+            conds.append(jumps_to in jump_list)
+            conds.append(check_node_consistency(blocks_dict,jumps_to, initial_address, visited_nodes))
+            conds.append(falls_to == None)
+            # print("Falls_to")
+            # print(falls_to)
+
+            # print("unconditional check")
+        
+        # Falls to node: check comes_from + next_node + jumps_to == None
+        elif t == "falls_to":
+            
+            conds.append(check_node_consistency(blocks_dict, falls_to, initial_address, visited_nodes))
+            conds.append(jumps_to == 0)
+
+            # print("Jumps to")
+            # print(jumps_to)
+
+            # print("falls to check")
+            
+        # Terminal node: only check comes_from
+
+        else:
+            pass
+            # print("terminal node to check")
+        
+    # If visited, as we've checked that node before, we just need to make sure
+    # comes_from has current node.
+
+    else:
+        # print("already checked")
+        pass
+    # print(initial_address)
+    # print(conds)
+    return reduce(lambda i,j: i and j, conds)
+
+''' Given a dictionary containing all blocks from graph, checks if all the info
+is coherent '''
+def check_graph_consistency(blocks_dict, initial_address = 0):
+    visited_nodes = [initial_address]
+    initial_block = blocks_dict[initial_address]
+
+    t = initial_block.get_block_type()
+
+    jumps_to = initial_block.get_jump_target()
+    falls_to = initial_block.get_falls_to()
+
+    conds = []
+
+    # Conditional jump: call check_node with falls_to && jump_target && all visited nodes are blocks
+    # are the ones in block_dict
+    if t == "conditional":
+         
+         conds.append(check_node_consistency(blocks_dict,falls_to, initial_address,visited_nodes))
+         conds.append(check_node_consistency(blocks_dict,jumps_to, initial_address,visited_nodes))
+         
+         # print("initial node: conditional")
+         
+    # Unconditional jump : check length of jump list && comes_from && 
+    # jumps target is the element of jump list && jump target node &&
+    # falls_to == None
+    elif t == "unconditional":
+         
+         jump_list = current_block.get_list_jumps()
+         
+         conds.append(len(jumps_list) == 1)
+         conds.append(jumps_to in jump_list)
+         conds.append(check_node_consistency(blocks_dict,jumps_to, initial_address, visited_nodes))
+         conds.append(falls_to == None)
+
+         # print("initial node: unconditional")
+         
+    # Falls to node: visited nodes == blocks_dict.keys && check  next_node  && jumps_to == None
+    elif t == "falls_to":
+        
+         conds.append(check_node_consistency(blocks_dict, falls_to, initial_address, visited_nodes))
+         conds.append(jumps_to == 0)
+         
+         # print("initial node: falls to")
+         
+    # Terminal node: only check there's no other block
+    else:
+         pass
+         # print("initial Node: terminal node")
+
+    # Check all visited nodes are the same in the dictionary
+    conds.append(visited_nodes.sort() == blocks_dict.keys().sort())
+
+    # print(conds)
+    
+    return reduce(lambda i,j: i and j, conds)
+
+# Given a string, returns closing parentheses index that closes first parenthese,
+# assuming parentheses are well-placed.
+def find_first_closing_parentheses(string):
+    idx_ini = string.find("(") + 1
+    filtered_string = string[idx_ini:]
+    cont = 1
+    while cont > 0:
+        opening_index = filtered_string.find("(")
+        closing_index = filtered_string.find(")")
+        if opening_index == -1:
+            return idx_ini + closing_index
+        elif opening_index < closing_index:
+            cont = cont+1
+            idx_ini = idx_ini + opening_index + 1
+            filtered_string = filtered_string[opening_index+1:]
+        else:
+            cont = cont-1
+            if cont == 0:
+                return idx_ini + closing_index
+            else:
+                idx_ini = idx_ini + closing_index + 1
+                filtered_string = filtered_string[closing_index+1:]
+    raise ValueError("Parentheses are not consistent")

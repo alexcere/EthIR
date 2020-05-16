@@ -24,6 +24,7 @@ class BasicBlock:
         self.stack_info = []
         self.ret_val = -1
         self.currentId = 0
+
         
         self.comes_from = []
         self.depth = -1
@@ -69,7 +70,7 @@ class BasicBlock:
         return self.falls_to
 
     def set_jump_target(self, address, cloning = None):
-        
+
         if isinstance(address, six.integer_types) and cloning == None:
             self.jump_target = address
         elif cloning:
@@ -127,19 +128,8 @@ class BasicBlock:
                 i = self.list_jumps.index(address)
                 self.list_jumps[i]=val
 
-    def update_comes_from(self,val):
-        num = val.split("_")
-        if len(num) == 2:
-            numI = int(num[0])
-            if numI in self.comes_from:
-                i = self.comes_from.index(numI)
-                self.comes_from[i]=val
-        elif len(num)>2:
-            numI = num[:-1]
-            address = "_".join(numI)
-            if address in self.comes_from:
-                i = self.comes_from.index(address)
-                self.comes_from[i]=val
+    def set_comes_from(self, new_comes_from):
+        self.comes_from = new_comes_from
 
     def add_jump(self, val):
         if val not in self.list_jumps:
@@ -393,10 +383,9 @@ class BasicBlock:
         self.div_invalid_pattern = True
     
     def add_stack(self,s):
-        s_aux = filter(lambda x: isinstance(x,tuple),s)
-        is_in = self._is_in_old_stacks(s_aux)
+        is_in = self._is_in_old_stacks(s)
         if not(is_in):
-            self.stacks_old.append(s_aux)
+            self.stacks_old.append(s)
 
     def known_stack(self,s):
         s_aux = filter(lambda x: isinstance(x,tuple),s)
@@ -404,9 +393,10 @@ class BasicBlock:
         return is_in
 
     def _is_in_old_stacks(self,stack):
-        jump_addresses = map(lambda x: x[0],stack)
-        old_stacks_addresses = map(lambda x: map(lambda y:y[0],x),self.stacks_old)
-        return jump_addresses in old_stacks_addresses
+        # jump_addresses = map(lambda x: x[0],stack)
+        # old_stacks_addresses = map(lambda x: map(lambda y:y[0],x),self.stacks_old)
+        # return jump_addresses in old_stacks_addresses
+        return stack in self.stacks_old
     
     def get_stacks(self):
         return self.stacks_old
@@ -434,7 +424,7 @@ class BasicBlock:
         if self.falls_to != None:
             new_obj.set_falls_to(self.falls_to)
             
-        new_obj.set_list_jump(list(self.list_jumps))
+        new_obj.set_list_jump([])
         # new_obj.set_list_jump([])
         new_obj._set_mload_values(self.mload_values.copy())
         new_obj._set_mstore_values(self.mstore_values.copy())
@@ -453,7 +443,9 @@ class BasicBlock:
         new_obj.set_access_array(self.access_array)
         new_obj.set_div_invalid_pattern(self.div_invalid_pattern)
         new_obj.set_assertfail_in_getter(self.assertfail_in_getter)
-        new_obj.set_stacks(self.stacks_old)
+
+        #AHC: When we copy, we just forget about old stacks
+        new_obj.set_stacks([])
         return new_obj
 
     def is_direct_block(self):
